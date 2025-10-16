@@ -125,22 +125,38 @@ int main() {
 	return 0;
   }
 
-	printf("the cilents req : %s\n",req);
+	/**
+	* send to the clinet a connection based on the request using parsing
+	*/
 	
-  const char *hdr =  "HTTP/1.1 200 OK\r\n"
-  "Content-Type: text/plain\r\n"
-  "Connection: close\r\n"
-  "\r\n"; // end of headers;
-	
-	if (send(client_fd, hdr, (ssize_t)strlen(hdr), 0) < 0) {
-  printf("head send failed : %s\n",strerror(errno));
-  close(client_fd);
-	return 0;
-	}
-	
+	char method[16] = {0};           // Sets all to 0		
+	char path[256] = {0};
+
+	if (sscanf(req, "%15s %244s",method,path) < 0) {	
+	  printf("parsing request failed : %s\n",strerror(errno));
+	  close(client_fd);
+		}
+
+	if (strcmp(path, "/") == 0) {
+		  const char *hdr =  "HTTP/1.1 200 OK\r\n"
+			"\r\n";
+		if (send(client_fd, hdr, strlen(hdr), 0)) {
+	  printf("parsing request failed : %s\n",strerror(errno));
+	  close(client_fd);
+	  }	
+  }else {
+		  const char *hdr =  "HTTP/1.1 404  not found\r\n"
+			"\r\n";
+		
+ 	if (send(client_fd, hdr, strlen(hdr), 0)) {
+ 		  printf("parsing request failed : %s\n",strerror(errno));
+ 		  close(client_fd);
+ 		  }	
+ 		}
+
 	// Clean up: close both client and server sockets
 	close(client_fd);
 	close(server_fd);
-	
+
 	return 0;
 }
