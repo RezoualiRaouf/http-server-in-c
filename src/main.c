@@ -125,8 +125,18 @@ int main() {
 	return 0;
   }
 
-
-  printf("Received request:\n%s\n", req);	
+	printf("the cilents req : %s\n",req);
+	
+  const char *hdr =  "HTTP/1.1 200 OK\r\n"
+  "Content-Type: text/plain\r\n"
+  "Connection: close\r\n"
+  "\r\n"; // end of headers;
+	
+	if (send(client_fd, hdr, (ssize_t)strlen(hdr), 0) < 0) {
+  printf("head send failed : %s\n",strerror(errno));
+  close(client_fd);
+	return 0;
+	}
 	
 	// Clean up: close both client and server sockets
 	close(client_fd);
