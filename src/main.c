@@ -1,8 +1,5 @@
 /**
- * Simple TCP Server
- * 
- * This program creates a basic TCP server that listens on port 4221
- * and accepts a single client connection.
+ * HTTP/1.1 server
  */
 
 #include <stdio.h>
@@ -10,6 +7,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <arpa/inet.h>
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
@@ -30,7 +28,7 @@ int main() {
 	/**
 	 * Create a TCP socket using IPv4
 	 * AF_INET: IPv4 protocol family
-	 * SOCK_STREAM: TCP (connection-oriented, reliable)
+	 * SOCK_STREAM: TCP 
 	 * 0: Default protocol for the socket type
 	 */
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -45,7 +43,6 @@ int main() {
 	 * Set SO_REUSEADDR socket option
 	 * This allows the server to bind to a port that was recently used,
 	 * preventing "Address already in use" errors during rapid restarts.
-	 * Essential for development and testing environments.
 	 */
 	int reuse = 1;
 	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
@@ -81,7 +78,8 @@ int main() {
 	 * connection_backlog: Maximum number of pending connections in the queue
 	 * Connections beyond this limit will be refused until the queue has space
 	 */
-	int connection_backlog = 5;
+	 
+	int connection_backlog = 5; // max connect to listen to
 	if (listen(server_fd, connection_backlog) != 0) {
 		printf("Listen failed: %s \n", strerror(errno));
 		close(server_fd);
@@ -96,6 +94,7 @@ int main() {
 	 * This blocks until a client connects
 	 * Returns a new socket file descriptor for communicating with the client
 	 */
+
 	client_fd = accept(server_fd, (struct sockaddr *) &client_addr, 
 	                   (socklen_t *) &client_addr_len);
 	
@@ -106,10 +105,28 @@ int main() {
 		return 1;
 	}
 	
-	printf("Client connected\n");
 	
-	// TODO: Add code here to communicate with the client
-	// Example: send/recv data using client_fd
+		printf("Client IP: %s\n", inet_ntoa(client_addr.sin_addr));
+		printf("Client Port: %d\n", ntohs(client_addr.sin_port));	
+	
+	/**
+	 * Receive and read the request from the 
+	 * clients using  client_fd
+	 */	
+		
+  char req[4096]; // to store the request
+	ssize_t recv_rq = recv(client_fd, req, sizeof(req) - 1, 0);
+ 
+	// check for errors while receiving  	
+
+	if (recv_rq < 0 || recv_rq == 0) {
+  printf("recv failed : %s\n",strerror(errno));
+  close(client_fd);
+	return 0;
+  }
+
+
+  printf("Received request:\n%s\n", req);	
 	
 	// Clean up: close both client and server sockets
 	close(client_fd);
