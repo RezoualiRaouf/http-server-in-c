@@ -140,7 +140,8 @@ int main() {
 	if (strcmp(path, "/") == 0) {
 		  const char *hdr =  "HTTP/1.1 200 OK\r\n"
 			"\r\n";
-		if (send(client_fd, hdr, strlen(hdr), 0)) {
+			const char *body = "<!DOCTYPE html><html><body><h1>My First Heading</h1><p>My first paragraph.</p></body></html>\r\n";
+		if (send(client_fd, hdr, strlen(hdr), 0) < 0 || send(client_fd, body, strlen(body), 0) < 0) {
 	  printf("parsing request failed : %s\n",strerror(errno));
 	  close(client_fd);
 	  }	
