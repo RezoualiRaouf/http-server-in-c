@@ -12,6 +12,28 @@
 #include <errno.h>
 #include <unistd.h>
 
+
+
+
+/*  Return a new malloc'd string with first n chars removed.
+ *  Returns NULL if s is NULL or malloc fails.
+ *    If n >= strlen(s), returns an empty string ("") that must still be freed.
+ */
+char *remove_first_n_copy(const char *s, size_t n) {
+    if (!s) return NULL;
+    size_t len = strlen(s);
+    size_t newlen = (n >= len) ? 0 : len - n;
+
+    char *out = malloc(newlen + 1); /* +1 for NUL */
+    if (!out) return NULL; /* allocation failure */
+
+    if (newlen > 0) {
+        memcpy(out, s + n, newlen);
+    }
+    out[newlen] = '\0';
+    return out;
+}
+
 int main() {
 	// Disable output buffering to ensure immediate console output
 	// Useful for debugging and real-time log monitoring
@@ -140,16 +162,25 @@ int main() {
 	if (strcmp(path, "/") == 0) {
 		  const char *hdr =  "HTTP/1.1 200 OK\r\n"
 			"\r\n";
-			const char *body = "<!DOCTYPE html><html><body><h1>My First Heading</h1><p>My first paragraph.</p></body></html>\r\n";
+			const char *body = path;
 		if (send(client_fd, hdr, strlen(hdr), 0) < 0 || send(client_fd, body, strlen(body), 0) < 0) {
 	  printf("parsing request failed : %s\n",strerror(errno));
 	  close(client_fd);
 	  }	
-  }else {
+  }else if (strncmp(path, "/echo/",6) == 0) {
+		  const char *hdr =  "HTTP/1.1 200 OK\r\n"
+			"\r\n";
+			char *echo_str = remove_first_n_copy(path, 6);
+			const char *body = echo_str;
+		if (send(client_fd, hdr, strlen(hdr), 0) < 0 || send(client_fd, body, strlen(body), 0) < 0) {
+	  printf("parsing request failed : %s\n",strerror(errno));
+	  close(client_fd);
+	  }	
+	}else{
 		  const char *hdr =  "HTTP/1.1 404  not found\r\n"
 			"\r\n";
 		
- 	if (send(client_fd, hdr, strlen(hdr), 0)) {
+ 	if (send(client_fd, hdr, strlen(hdr), 0) < 0) {
  		  printf("parsing request failed : %s\n",strerror(errno));
  		  close(client_fd);
  		  }	
