@@ -1,8 +1,8 @@
 /**
  * HTTP/1.1 Server
  * 
- * A simple HTTP server that handles GET requests on port 4221.
- * Supports routes: "/" (root), "/echo/*" (echo endpoint), and 404 for others.
+ * A HTTP server that handles GET requests on port 4221.
+ *
  */
 
 #include <stdio.h>
@@ -166,7 +166,7 @@ int main() {
 	
 	/* Route: "/echo/*" - Echo back the text after /echo/ */
 	} else if (strncmp(path, "/echo/", 6) == 0) {
-		const char *hdr = "HTTP/1.1 200 OK\r\n\r\n";
+		char hdr[512];
 		
 		/* Extract text after "/echo/" (skip first 6 characters) */
 		char *echo_str = remove_first_n_copy(path, 6);
@@ -176,6 +176,8 @@ int main() {
 			close(server_fd);
 			return 1;
 		}
+		snprintf(hdr, sizeof(hdr),"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %zu\r\n\r\n",strlen(echo_str));
+		// %zu is used for parameters with type (ssize_t) and the strlen returns it 
 		
 		const char *body = echo_str;
 		if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
