@@ -41,6 +41,19 @@ char *remove_first_n_copy(const char *s, size_t n) {
     return out;
 }
 
+int check_agent(char *req, char user_agent_arr[256]){
+	char *user_agent_line = strstr(req,"User-Agent:");
+	if (user_agent_line != NULL) {
+	 char *value_start = user_agent_line + 12; // the string "User-agent:" is 12 chars 
+	 char *value_end = strstr(value_start, "\r\n");
+	 int value_length = value_end - value_start;
+	strncpy(user_agent_arr, value_start, value_length);
+	user_agent_arr[value_length] = '\0'; // set the last element of the array to the default '/0'
+	return 1;
+}
+	return 0;
+}
+
 int main() {
 	// Disable output buffering for immediate console output
 	setbuf(stdout, NULL);
@@ -155,6 +168,9 @@ int main() {
 	 */
 	
 	/* Route: "/" - Root endpoint */
+	
+	char agent_arr[256] ={0};
+	
 	if (strcmp(path, "/") == 0) {
 		const char *hdr = "HTTP/1.1 200 OK\r\n\r\n";
 		const char *body = path;
@@ -187,7 +203,26 @@ int main() {
 		
 		free(echo_str); /* Free dynamically allocated string */
 	
+	}else if (strncmp(path, "/user-agent",11) == 0) {
+
+  	char hdr[512];	
+	
+		if(check_agent(req,agent_arr) == 1){
+
+			snprintf(hdr, sizeof(hdr), "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %zu\r\n\r\n",strlen(agent_arr));
+
+			if (send(client_fd, hdr,strlen(hdr),0) < 0 || send(client_fd, agent_arr, strlen(agent_arr), 0) < 0 )
+				printf("send failed : %s\n", strerror(errno));
+		
+			} else {
+
+    // Send 400 Bad Request if User-Agent header missing
+    const char *hdr = "HTTP/1.1 400 Bad Request\r\n\r\n";
+    send(client_fd, hdr, strlen(hdr), 0);
+}
+
 	/* Route: Default - 404 Not Found */
+		
 	} else {
 		const char *hdr = "HTTP/1.1 404 Not Found\r\n\r\n";
 		
@@ -195,7 +230,6 @@ int main() {
 			printf("send failed : %s\n", strerror(errno));
 		}
 	}
-
 	/* Clean up: close sockets */
 	close(client_fd);
 	close(server_fd);
