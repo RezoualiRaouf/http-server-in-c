@@ -5,6 +5,7 @@
  *
  */
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -15,6 +16,55 @@
 #include <errno.h>
 #include <unistd.h>
 
+
+typedef struct http_request{
+	char method[10];
+	char path[256];
+	char version[16];
+	char user_agent[256];
+	char host[256];
+	char content_type[128];
+	int content_length;
+	int valid;
+
+}http_request;
+
+
+http_request parse_http_request(char req[]){
+
+	http_request parsed = {0};
+
+	if (req == NULL){
+		parsed.valid = 0;
+		return parsed;
+	}
+
+	if (sscanf(req, "%9s %255s %15s",parsed.method,parsed.path,parsed.version) != 3) {
+		printf("parsing request failed : %s\n",strerror(errno));
+		parsed.valid = 0;
+		return parsed;
+	}
+	
+	char *ua_line = strstr(req,"User-Agent:");
+	if (ua_line == NULL) {
+		printf("parsing request failed (can't find user-agent) : %s\n",strerror(errno));
+		parsed.valid = 0;
+		return parsed;
+	}
+
+	*ua_line += 12;
+	char *ua_end = strstr(ua_line,"\r\n");
+	
+	if (ua_end) {
+		size_t len = ua_end - ua_line;
+		strncpy(parsed.user_agent,ua_line, len);
+		parsed.user_agent[len] = '\0';
+	}
+
+	
+	parsed.valid = 1;
+	return parsed;
+}
 /**
  * Remove first n characters from a string and return a new malloc'd copy.
  * 
@@ -42,16 +92,20 @@ char *remove_first_n_copy(const char *s, size_t n) {
 }
 
 int check_agent(char *req, char user_agent_arr[256]){
+	
 	char *user_agent_line = strstr(req,"User-Agent:");
+	
 	if (user_agent_line != NULL) {
+		
 	 char *value_start = user_agent_line + 12; // the string "User-agent:" is 12 chars 
 	 char *value_end = strstr(value_start, "\r\n");
 	 int value_length = value_end - value_start;
 	strncpy(user_agent_arr, value_start, value_length);
 	user_agent_arr[value_length] = '\0'; // set the last element of the array to the default '/0'
+
 	return 1;
-}
-	return 0;
+	}
+return 0;
 }
 
 int main() {
