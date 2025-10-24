@@ -30,6 +30,30 @@ typedef struct http_request{
 }http_request;
 
 
+int get_header_value(char req[],const char *header_name,char *out_value, ssize_t len){
+
+	if (!req || !header_name ||! out_value) 
+		return 0;
+
+	char *start_value = strstr(req, header_name);
+	
+	if (start_value == NULL) {
+		printf("error while parsing for %s header : %s",header_name,strerror(errno));
+	return 0;
+	}
+
+	start_value = strstr(start_value, ":");	
+	char *end_value = strstr(req, "\r\n");
+	if (end_value) {
+		len = end_value - start_value;	
+		strncpy(out_value,start_value,len);
+		out_value[len] = '\0';
+	}
+
+	return 1;
+}
+
+
 http_request parse_http_request(char req[]){
 
 	http_request parsed = {0};
@@ -290,3 +314,7 @@ int main() {
 
 	return 0;
 }
+
+
+
+
