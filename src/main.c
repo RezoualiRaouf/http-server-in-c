@@ -18,7 +18,7 @@
 
 
 typedef struct http_request{
-	char method[10];
+	char method[16];
 	char path[256];
 	char version[16];
 	char user_agent[256];
@@ -30,24 +30,34 @@ typedef struct http_request{
 }http_request;
 
 
-int get_header_value(char req[],const char *header_name,char *out_value, ssize_t len){
+int get_header_value(char req[],const char *header_name,char *out_value, ssize_t out_len){
 
-	if (!req || !header_name ||! out_value) 
+	if (!req || !header_name || !out_value) 
 		return 0;
 
-	char *start_value = strstr(req, header_name);
-	
-	if (start_value == NULL) {
-		printf("error while parsing for %s header : %s",header_name,strerror(errno));
-	return 0;
-	}
+	char search_arr[128] = {0}; //helps in getting the length of the first part of the header
+	snprintf(search_arr, sizeof(search_arr),"%s: ", header_name);
 
-	start_value = strstr(start_value, ":");	
-	char *end_value = strstr(req, "\r\n");
+	// find the start of the string
+	char *start_value = strstr(req, search_arr);  // return a pointer to the start of the needed data of the header
+
+	if (!start_value) return 0;
+	
+	start_value += strlen(search_arr);  //skip the unwanted format exp "User-Agent:"
+
+	// find the end of the string 
+	char *end_value = strstr(start_value, "\r\n");
+
+	if (!end_value) return 0;
+
+	// calc the length and copy it
 	if (end_value) {
-		len = end_value - start_value;	
-		strncpy(out_value,start_value,len);
-		out_value[len] = '\0';
+		ssize_t in_len = end_value - start_value;	
+		
+		if (in_len >= out_len) in_len = out_len -1;	
+		
+		strncpy(out_value,start_value,in_len);
+		out_value[in_len] = '\0';
 	}
 
 	return 1;
@@ -57,7 +67,8 @@ int get_header_value(char req[],const char *header_name,char *out_value, ssize_t
 http_request parse_http_request(char req[]){
 
 	http_request parsed = {0};
-
+	parsed.valid = 1;
+	
 	if (req == NULL){
 		parsed.valid = 0;
 		return parsed;
@@ -69,24 +80,15 @@ http_request parse_http_request(char req[]){
 		return parsed;
 	}
 	
-	char *ua_line = strstr(req,"User-Agent:");
-	if (ua_line == NULL) {
-		printf("parsing request failed (can't find user-agent) : %s\n",strerror(errno));
-		parsed.valid = 0;
-		return parsed;
-	}
+	get_header_value(req,"User-Agent",parsed.user_agent,sizeof(parsed.user_agent));
+	get_header_value(req,"Host",parsed.host,sizeof(parsed.host));
+	get_header_value(req,"Content-Type",parsed.content_type,sizeof(parsed.content_type));
 
-	*ua_line += 12;
-	char *ua_end = strstr(ua_line,"\r\n");
-	
-	if (ua_end) {
-		size_t len = ua_end - ua_line;
-		strncpy(parsed.user_agent,ua_line, len);
-		parsed.user_agent[len] = '\0';
-	}
 
-	
-	parsed.valid = 1;
+	char content_length[32] = {0};
+	if (get_header_value(req,"Content-length",content_length,sizeof(content_length)))
+		parsed.content_length = atoi(content_length);
+
 	return parsed;
 }
 /**
