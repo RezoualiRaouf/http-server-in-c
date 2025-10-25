@@ -30,6 +30,64 @@ typedef struct http_request{
 }http_request;
 
 
+void send_error_response(int client_fd, int code){
+
+	char hdr[512];
+	switch (code) {
+	case 400:
+		sprintf(hdr,"HTTP/1.1 400 Bad Request\r\n\r\n");	
+		break;
+	case 401:
+		sprintf(hdr,"HTTP/1.1 401 Unauthorized\r\n\r\n");	
+		break;
+	case 403:
+		sprintf(hdr,"HTTP/1.1 403 Forbidden\r\n\r\n");	
+		break;
+	case 404:
+		sprintf(hdr,"HTTP/1.1 404 Not Found\r\n\r\n");	
+		break;
+	case 408:
+		sprintf(hdr,"HTTP/1.1 408 Request Timeout\r\n\r\n");	
+	default:
+		printf("error in sending : code Not Found\n");		
+		break;
+	}
+	
+	if (send(client_fd,hdr,strlen(hdr),0) < 0) {
+		printf("error in sending : %s \n",strerror(errno));
+	}
+}
+
+
+void send_seccess_response(int client_fd, int code,char *body){
+
+	char hdr[512];
+	switch (code) {
+	case 400:
+		sprintf(hdr,"HTTP/1.1 400 Bad Request\r\n\r\n");	
+		break;
+	case 401:
+		sprintf(hdr,"HTTP/1.1 401 Unauthorized\r\n\r\n");	
+		break;
+	case 403:
+		sprintf(hdr,"HTTP/1.1 403 Forbidden\r\n\r\n");	
+		break;
+	case 404:
+		sprintf(hdr,"HTTP/1.1 404 Not Found\r\n\r\n");	
+		break;
+	case 408:
+		sprintf(hdr,"HTTP/1.1 408 Request Timeout\r\n\r\n");	
+	default:
+		printf("error in sending : code Not Found\n");		
+		break;
+	}
+	
+	if (send(client_fd,hdr,strlen(hdr),0) < 0) {
+		printf("error in sending : %s \n",strerror(errno));
+	}
+}
+
+
 int get_header_value(char req[],const char *header_name,char *out_value, ssize_t out_len){
 
 	if (!req || !header_name || !out_value) 
@@ -51,14 +109,12 @@ int get_header_value(char req[],const char *header_name,char *out_value, ssize_t
 	if (!end_value) return 0;
 
 	// calc the length and copy it
-	if (end_value) {
 		ssize_t in_len = end_value - start_value;	
 		
-		if (in_len >= out_len) in_len = out_len -1;	
+	if (in_len >= out_len) in_len = out_len -1;	
 		
-		strncpy(out_value,start_value,in_len);
-		out_value[in_len] = '\0';
-	}
+	strncpy(out_value,start_value,in_len);
+	out_value[in_len] = '\0';
 
 	return 1;
 }
@@ -74,7 +130,7 @@ http_request parse_http_request(char req[]){
 		return parsed;
 	}
 
-	if (sscanf(req, "%9s %255s %15s",parsed.method,parsed.path,parsed.version) != 3) {
+	if (sscanf(req, "%15s %255s %15s",parsed.method,parsed.path,parsed.version) != 3) {
 		printf("parsing request failed : %s\n",strerror(errno));
 		parsed.valid = 0;
 		return parsed;
@@ -86,11 +142,13 @@ http_request parse_http_request(char req[]){
 
 
 	char content_length[32] = {0};
-	if (get_header_value(req,"Content-length",content_length,sizeof(content_length)))
+	if (get_header_value(req,"Content-Length",content_length,sizeof(content_length)))
 		parsed.content_length = atoi(content_length);
 
 	return parsed;
 }
+
+
 /**
  * Remove first n characters from a string and return a new malloc'd copy.
  * 
