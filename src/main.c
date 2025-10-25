@@ -30,61 +30,54 @@ typedef struct http_request{
 }http_request;
 
 
+
+
 void send_error_response(int client_fd, int code){
 
 	char hdr[512];
 	switch (code) {
-	case 400:
-		sprintf(hdr,"HTTP/1.1 400 Bad Request\r\n\r\n");	
-		break;
-	case 401:
-		sprintf(hdr,"HTTP/1.1 401 Unauthorized\r\n\r\n");	
-		break;
-	case 403:
-		sprintf(hdr,"HTTP/1.1 403 Forbidden\r\n\r\n");	
-		break;
-	case 404:
-		sprintf(hdr,"HTTP/1.1 404 Not Found\r\n\r\n");	
-		break;
-	case 408:
-		sprintf(hdr,"HTTP/1.1 408 Request Timeout\r\n\r\n");	
-	default:
-		printf("error in sending : code Not Found\n");		
+		case 400:
+				sprintf(hdr,"HTTP/1.1 400 Bad Request\r\n\r\n");	
+				break;
+		case 401:
+				sprintf(hdr,"HTTP/1.1 401 Unauthorized\r\n\r\n");	
+				break;
+		case 403:
+				sprintf(hdr,"HTTP/1.1 403 Forbidden\r\n\r\n");	
+				break;
+		case 404:
+				sprintf(hdr,"HTTP/1.1 404 Not Found\r\n\r\n");	
+				break;
+		case 408:
+				sprintf(hdr,"HTTP/1.1 408 Request Timeout\r\n\r\n");	
+		default:
+				printf("error in sending : code Not Found\n");		
 		break;
 	}
 	
-	if (send(client_fd,hdr,strlen(hdr),0) < 0) {
-		printf("error in sending : %s \n",strerror(errno));
-	}
+	if (send(client_fd,hdr,strlen(hdr),0) < 0)
+			printf("error in sending : %s \n",strerror(errno));
 }
 
 
-void send_seccess_response(int client_fd, int code,char *body){
-
-	char hdr[512];
-	switch (code) {
-	case 400:
-		sprintf(hdr,"HTTP/1.1 400 Bad Request\r\n\r\n");	
-		break;
-	case 401:
-		sprintf(hdr,"HTTP/1.1 401 Unauthorized\r\n\r\n");	
-		break;
-	case 403:
-		sprintf(hdr,"HTTP/1.1 403 Forbidden\r\n\r\n");	
-		break;
-	case 404:
-		sprintf(hdr,"HTTP/1.1 404 Not Found\r\n\r\n");	
-		break;
-	case 408:
-		sprintf(hdr,"HTTP/1.1 408 Request Timeout\r\n\r\n");	
-	default:
-		printf("error in sending : code Not Found\n");		
-		break;
-	}
-	
-	if (send(client_fd,hdr,strlen(hdr),0) < 0) {
-		printf("error in sending : %s \n",strerror(errno));
-	}
+void send_success_response(int client_fd, char *body, char *content_type, size_t content_length) {
+    char hdr[512];
+    
+    if (body == NULL) {
+        snprintf(hdr, sizeof(hdr), "HTTP/1.1 200 OK\r\n\r\n");
+        if (send(client_fd, hdr, strlen(hdr), 0) < 0) {
+            printf("error in sending: %s\n", strerror(errno));
+        }
+    } else {
+        snprintf(hdr, sizeof(hdr), 
+                 "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n",
+                 content_type, content_length);
+        
+        if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
+            send(client_fd, body, content_length, 0) < 0) {
+            printf("error in sending: %s\n", strerror(errno));
+        }
+    }
 }
 
 
@@ -331,7 +324,7 @@ int main() {
 			return 1;
 		}
 		snprintf(hdr, sizeof(hdr),"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %zu\r\n\r\n",strlen(echo_str));
-		// %zu is used for parameters with type (ssize_t) and the strlen returns it 
+		// %zu is used for parameters with type (size_t) and the strlen returns it 
 		
 		const char *body = echo_str;
 		if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
