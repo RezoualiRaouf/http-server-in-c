@@ -5,6 +5,7 @@
  *
  */
 
+#include <cstddef>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,7 +67,7 @@ int send_error_response(int client_fd, int code){
 int send_success_response(int client_fd, char *body, char *content_type, size_t content_length) {
     char hdr[512];
     
-    if (body == NULL) {
+    if (body == NULL || content_type == NULL) {
         snprintf(hdr, sizeof(hdr), "HTTP/1.1 200 OK\r\n\r\n");
         if (send(client_fd, hdr, strlen(hdr), 0) < 0) {
             printf("error in sending: %s\n", strerror(errno));
@@ -74,6 +75,10 @@ int send_success_response(int client_fd, char *body, char *content_type, size_t 
         }
 				return 1;
     } else {
+			//check if content_type exist if not send default value
+			if (content_type == NULL) {
+				content_type = "application/octet-stream";
+			}
         snprintf(hdr, sizeof(hdr), 
                  "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n",
                  content_type, content_length);
