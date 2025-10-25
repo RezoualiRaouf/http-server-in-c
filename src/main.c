@@ -32,7 +32,7 @@ typedef struct http_request{
 
 
 
-void send_error_response(int client_fd, int code){
+int send_error_response(int client_fd, int code){
 
 	char hdr[512];
 	switch (code) {
@@ -55,19 +55,24 @@ void send_error_response(int client_fd, int code){
 		break;
 	}
 	
-	if (send(client_fd,hdr,strlen(hdr),0) < 0)
+	if (send(client_fd,hdr,strlen(hdr),0) < 0){
 			printf("error in sending : %s \n",strerror(errno));
+			return 0;
+	}
+	return 1;
 }
 
 
-void send_success_response(int client_fd, char *body, char *content_type, size_t content_length) {
+int send_success_response(int client_fd, char *body, char *content_type, size_t content_length) {
     char hdr[512];
     
     if (body == NULL) {
         snprintf(hdr, sizeof(hdr), "HTTP/1.1 200 OK\r\n\r\n");
         if (send(client_fd, hdr, strlen(hdr), 0) < 0) {
             printf("error in sending: %s\n", strerror(errno));
+						return 0;
         }
+				return 1;
     } else {
         snprintf(hdr, sizeof(hdr), 
                  "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n",
@@ -76,7 +81,9 @@ void send_success_response(int client_fd, char *body, char *content_type, size_t
         if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
             send(client_fd, body, content_length, 0) < 0) {
             printf("error in sending: %s\n", strerror(errno));
+						return 0;
         }
+				return 1;
     }
 }
 
