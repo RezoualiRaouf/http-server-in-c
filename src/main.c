@@ -5,7 +5,7 @@
  *
  */
 
-#include <cstddef>
+#include <stddef.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,29 +67,35 @@ int send_error_response(int client_fd, int code){
 int send_success_response(int client_fd, char *body, char *content_type, size_t content_length) {
     char hdr[512];
     
-    if (body == NULL || content_type == NULL) {
+    if (body == NULL) {
         snprintf(hdr, sizeof(hdr), "HTTP/1.1 200 OK\r\n\r\n");
         if (send(client_fd, hdr, strlen(hdr), 0) < 0) {
             printf("error in sending: %s\n", strerror(errno));
 						return 0;
         }
 				return 1;
-    } else {
-			//check if content_type exist if not send default value
-			if (content_type == NULL) {
+
+    } else if (body != NULL && content_type == NULL) {
+	
 				content_type = "application/octet-stream";
-			}
-        snprintf(hdr, sizeof(hdr), 
+	
+				snprintf(hdr, sizeof(hdr), 
                  "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n",
-                 content_type, content_length);
-        
-        if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
-            send(client_fd, body, content_length, 0) < 0) {
-            printf("error in sending: %s\n", strerror(errno));
-						return 0;
-        }
-				return 1;
+                 content_type, strlen(content_type));
+								 
+		}else if (body != NULL && content_type != NULL) {
+				 snprintf(hdr, sizeof(hdr), 
+                 "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n",
+                 content_type, strlen(content_type));
+		}
+								 
+    if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
+          send(client_fd, body, content_length, 0) < 0) {
+          printf("error in sending: %s\n", strerror(errno));
+				return 0;
     }
+		
+		return 1;
 }
 
 
@@ -292,6 +298,11 @@ int main() {
 		return 1;
 	}
 	
+
+	http_request request_data = parse_http_request(req)	;
+	
+	
+	
 	/**
 	 * Parse HTTP request line: "METHOD PATH HTTP/VERSION"
 	 * Extract method (e.g., GET) and path (e.g., /echo/hello)
@@ -314,15 +325,9 @@ int main() {
 	
 	char agent_arr[256] ={0};
 	
-	if (strcmp(path, "/") == 0) {
-		const char *hdr = "HTTP/1.1 200 OK\r\n\r\n";
-		const char *body = path;
-		
-		if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
-		    send(client_fd, body, strlen(body), 0) < 0) {
-			printf("send failed : %s\n", strerror(errno));
-		}
-	
+	if (strcmp(request_data.path, "/") == 0) {
+		send_success_response(client_fd, request_data.path,NULL,0);
+
 	/* Route: "/echo/*" - Echo back the text after /echo/ */
 	} else if (strncmp(path, "/echo/", 6) == 0) {
 		char hdr[512];
@@ -334,15 +339,10 @@ int main() {
 			close(client_fd);
 			close(server_fd);
 			return 1;
-		}
-		snprintf(hdr, sizeof(hdr),"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %zu\r\n\r\n",strlen(echo_str));
-		// %zu is used for parameters with type (size_t) and the strlen returns it 
 		
-		const char *body = echo_str;
-		if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
-		    send(client_fd, body, strlen(body), 0) < 0) {
-			printf("send failed : %s\n", strerror(errno));
 		}
+
+		send_success_response(client_fd,echo_str,"text/plain",strlen(echo_str));	
 		
 		free(echo_str); /* Free dynamically allocated string */
 	
@@ -350,28 +350,11 @@ int main() {
 
   	char hdr[512];	
 	
-		if(check_agent(req,agent_arr) == 1){
+			send_success_response(client_fd,request_data.user_agent,"text/plain",strlen(request_data.user_agent));
 
-			snprintf(hdr, sizeof(hdr), "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %zu\r\n\r\n",strlen(agent_arr));
-
-			if (send(client_fd, hdr,strlen(hdr),0) < 0 || send(client_fd, agent_arr, strlen(agent_arr), 0) < 0 )
-				printf("send failed : %s\n", strerror(errno));
-		
-			} else {
-
-    // Send 400 Bad Request if User-Agent header missing
-    const char *hdr = "HTTP/1.1 400 Bad Request\r\n\r\n";
-    send(client_fd, hdr, strlen(hdr), 0);
-}
-
-	/* Route: Default - 404 Not Found */
-		
+	/* Route: Default - 404 Not Found */		
 	} else {
-		const char *hdr = "HTTP/1.1 404 Not Found\r\n\r\n";
-		
-		if (send(client_fd, hdr, strlen(hdr), 0) < 0) {
-			printf("send failed : %s\n", strerror(errno));
-		}
+		send_error_response(client_fd,404);	
 	}
 	/* Clean up: close sockets */
 	close(client_fd);
