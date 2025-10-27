@@ -6,7 +6,6 @@
  */
 
 #include <stddef.h>
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -38,22 +37,23 @@ int send_error_response(int client_fd, int code){
 	char hdr[512];
 	switch (code) {
 		case 400:
-				sprintf(hdr,"HTTP/1.1 400 Bad Request\r\n\r\n");	
+				snprintf(hdr,sizeof(hdr),"HTTP/1.1 400 Bad Request\r\n\r\n");	
 				break;
 		case 401:
-				sprintf(hdr,"HTTP/1.1 401 Unauthorized\r\n\r\n");	
+				snprintf(hdr,sizeof(hdr),"HTTP/1.1 401 Unauthorized\r\n\r\n");	
 				break;
 		case 403:
-				sprintf(hdr,"HTTP/1.1 403 Forbidden\r\n\r\n");	
+				snprintf(hdr,sizeof(hdr),"HTTP/1.1 403 Forbidden\r\n\r\n");	
 				break;
 		case 404:
-				sprintf(hdr,"HTTP/1.1 404 Not Found\r\n\r\n");	
+				snprintf(hdr,sizeof(hdr),"HTTP/1.1 404 Not Found\r\n\r\n");	
 				break;
 		case 408:
-				sprintf(hdr,"HTTP/1.1 408 Request Timeout\r\n\r\n");	
+				snprintf(hdr,sizeof(hdr),"HTTP/1.1 408 Request Timeout\r\n\r\n");	
+				break;
 		default:
 				printf("error in sending : code Not Found\n");		
-		break;
+				break;
 	}
 	
 	if (send(client_fd,hdr,strlen(hdr),0) < 0){
@@ -65,7 +65,8 @@ int send_error_response(int client_fd, int code){
 
 
 int send_success_response(int client_fd, char *body, char *content_type, size_t content_length) {
-    char hdr[512];
+
+  char hdr[512];
     
     if (body == NULL) {
         snprintf(hdr, sizeof(hdr), "HTTP/1.1 200 OK\r\n\r\n");
@@ -75,27 +76,23 @@ int send_success_response(int client_fd, char *body, char *content_type, size_t 
         }
 				return 1;
 
-    } else if (body != NULL && content_type == NULL) {
-	
-				content_type = "application/octet-stream";
+    }else{
+				if (content_type == NULL)
+					content_type = "application/octet-stream";
 	
 				snprintf(hdr, sizeof(hdr), 
-                 "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n",
-                 content_type, strlen(content_type));
+  	          "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n",
+              content_type, content_length);
+
 								 
-		}else if (body != NULL && content_type != NULL) {
-				 snprintf(hdr, sizeof(hdr), 
-                 "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n",
-                 content_type, strlen(content_type));
-		}
-								 
-    if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
-          send(client_fd, body, content_length, 0) < 0) {
-          printf("error in sending: %s\n", strerror(errno));
-				return 0;
-    }
-		
-		return 1;
+		    if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
+ 	      		send(client_fd, body,content_length, 0) < 0) {
+  	        printf("error in sending: %s\n", strerror(errno));
+					return 0;
+   		 }
+		}	
+
+	return 1;
 }
 
 
@@ -186,22 +183,6 @@ char *remove_first_n_copy(const char *s, size_t n) {
     return out;
 }
 
-int check_agent(char *req, char user_agent_arr[256]){
-	
-	char *user_agent_line = strstr(req,"User-Agent:");
-	
-	if (user_agent_line != NULL) {
-		
-	 char *value_start = user_agent_line + 12; // the string "User-agent:" is 12 chars 
-	 char *value_end = strstr(value_start, "\r\n");
-	 int value_length = value_end - value_start;
-	strncpy(user_agent_arr, value_start, value_length);
-	user_agent_arr[value_length] = '\0'; // set the last element of the array to the default '/0'
-
-	return 1;
-	}
-return 0;
-}
 
 int main() {
 	// Disable output buffering for immediate console output
@@ -301,68 +282,63 @@ int main() {
 
 	http_request request_data = parse_http_request(req)	;
 	
-	
-	
-	/**
-	 * Parse HTTP request line: "METHOD PATH HTTP/VERSION"
-	 * Extract method (e.g., GET) and path (e.g., /echo/hello)
-	 */
-	char method[16] = {0};
-	char path[256] = {0};
-
-	if (sscanf(req, "%15s %255s", method, path) != 2) {
-		printf("parsing request failed : %s\n", strerror(errno));
+	if(!request_data.valid){
+		send_error_response(client_fd,400);
+		printf("error while parsing the request %s \n",strerror(errno));
 		close(client_fd);
 		close(server_fd);
 		return 1;
 	}
 
-	/**
-	 * Route handler: Match request path and send appropriate response
-	 */
 	
 	/* Route: "/" - Root endpoint */
-	
-	char agent_arr[256] ={0};
-	
 	if (strcmp(request_data.path, "/") == 0) {
-		send_success_response(client_fd, request_data.path,NULL,0);
+		
+		if(!send_success_response(client_fd, NULL,NULL,0)){
+				close(client_fd);
+				close(server_fd);
+				return 1;
+		}
 
 	/* Route: "/echo/*" - Echo back the text after /echo/ */
-	} else if (strncmp(path, "/echo/", 6) == 0) {
-		char hdr[512];
+	} else if (strncmp(request_data.path, "/echo/", 6) == 0) {
 		
 		/* Extract text after "/echo/" (skip first 6 characters) */
-		char *echo_str = remove_first_n_copy(path, 6);
+		char *echo_str = remove_first_n_copy(request_data.path, 6);
+
 		if (!echo_str) {
 			printf("malloc failed\n");
 			close(client_fd);
 			close(server_fd);
 			return 1;
-		
 		}
 
-		send_success_response(client_fd,echo_str,"text/plain",strlen(echo_str));	
-		
+		if(!send_success_response(client_fd,echo_str,"text/plain",
+							strlen(echo_str))){
+				close(client_fd);
+				close(server_fd);
+				return 1;
+		}		
 		free(echo_str); /* Free dynamically allocated string */
 	
-	}else if (strncmp(path, "/user-agent",11) == 0) {
+	/* Rout: "/User-Agent*" back the users agent*/ 
+	}else if (strncmp(request_data.path, "/user-agent",11) == 0) {
 
-  	char hdr[512];	
-	
-			send_success_response(client_fd,request_data.user_agent,"text/plain",strlen(request_data.user_agent));
+			if (!send_success_response(client_fd,request_data.user_agent,"text/plain",
+								strlen(request_data.user_agent))){
+					close(client_fd);
+					close(server_fd);				
+					return 1;
+			}
+			
 
 	/* Route: Default - 404 Not Found */		
 	} else {
 		send_error_response(client_fd,404);	
+			close(client_fd);
+			close(server_fd);
+			return 1;
 	}
-	/* Clean up: close sockets */
-	close(client_fd);
-	close(server_fd);
 
 	return 0;
 }
-
-
-
-
