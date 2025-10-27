@@ -243,8 +243,6 @@ int main() {
 	 * Returns new socket descriptor for this specific client
 	 */
 
-	 while (1) {
-	 
 	 
 	 client_fd = accept(server_fd, (struct sockaddr *) &client_addr, 
 	                   (socklen_t *) &client_addr_len);
@@ -332,7 +330,6 @@ int main() {
 			close(client_fd);
 			close(server_fd);
 			return 1;
-	}
 	}
 	return 0;
 }
