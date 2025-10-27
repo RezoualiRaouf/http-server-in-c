@@ -34,31 +34,22 @@ typedef struct http_request{
 
 int send_error_response(int client_fd, int code){
 
-	char hdr[512];
-	switch (code) {
-		case 400:
-				snprintf(hdr,sizeof(hdr),"HTTP/1.1 400 Bad Request\r\n\r\n");	
-				break;
-		case 401:
-				snprintf(hdr,sizeof(hdr),"HTTP/1.1 401 Unauthorized\r\n\r\n");	
-				break;
-		case 403:
-				snprintf(hdr,sizeof(hdr),"HTTP/1.1 403 Forbidden\r\n\r\n");	
-				break;
-		case 404:
-				snprintf(hdr,sizeof(hdr),"HTTP/1.1 404 Not Found\r\n\r\n");	
-				break;
-		case 408:
-				snprintf(hdr,sizeof(hdr),"HTTP/1.1 408 Request Timeout\r\n\r\n");	
-				break;
-		default:
-				printf("error in sending : code Not Found\n");		
-				break;
-	}
+	char *reason;
+   switch (code) {
+        case 400: reason = "Bad Request"; break;
+        case 401: reason = "Unauthorized"; break;
+        case 403: reason = "Forbidden"; break;
+        case 404: reason = "Not Found"; break;
+        case 408: reason = "Request Timeout"; break;
+        default:  reason = "Internal Server Error"; code = 500; break;
+    }
+	
+	char hdr[256];
+	snprintf(hdr,sizeof(hdr), "HTTP/1.1 %d %s\r\n Content-Length: 0\r\n Connection:	close\r\n\r\n", code , reason);
 	
 	if (send(client_fd,hdr,strlen(hdr),0) < 0){
-			printf("error in sending : %s \n",strerror(errno));
-			return 0;
+				printf("error in sending : %s \n",strerror(errno));
+				return 0;
 	}
 	return 1;
 }
@@ -69,7 +60,7 @@ int send_success_response(int client_fd, char *body, char *content_type, size_t 
   char hdr[512];
     
     if (body == NULL) {
-        snprintf(hdr, sizeof(hdr), "HTTP/1.1 200 OK\r\n\r\n");
+        snprintf(hdr, sizeof(hdr),  "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
         if (send(client_fd, hdr, strlen(hdr), 0) < 0) {
             printf("error in sending: %s\n", strerror(errno));
 						return 0;
@@ -189,7 +180,6 @@ int main() {
 	setbuf(stdout, NULL);
  	setbuf(stderr, NULL);
 
-	printf("Logs from your program will appear here!\n");
 
 	int server_fd, client_fd;
 	int client_addr_len;
@@ -238,7 +228,7 @@ int main() {
 	 * Start listening with backlog of 5 connections
 	 * Up to 5 pending connections can queue while server handles current request
 	 */
-	int connection_backlog = 5;
+	int connection_backlog = 7;
 	if (listen(server_fd, connection_backlog) != 0) {
 		printf("Listen failed: %s \n", strerror(errno));
 		close(server_fd);
@@ -252,7 +242,11 @@ int main() {
 	 * Accept incoming connection (blocks until client connects)
 	 * Returns new socket descriptor for this specific client
 	 */
-	client_fd = accept(server_fd, (struct sockaddr *) &client_addr, 
+
+	 while (1) {
+	 
+	 
+	 client_fd = accept(server_fd, (struct sockaddr *) &client_addr, 
 	                   (socklen_t *) &client_addr_len);
 	
 	if (client_fd == -1) {
@@ -294,7 +288,7 @@ int main() {
 	/* Route: "/" - Root endpoint */
 	if (strcmp(request_data.path, "/") == 0) {
 		
-		if(!send_success_response(client_fd, NULL,NULL,0)){
+		if(!send_success_response(client_fd, NULL,NULL,1)){
 				close(client_fd);
 				close(server_fd);
 				return 1;
@@ -339,6 +333,6 @@ int main() {
 			close(server_fd);
 			return 1;
 	}
-
+	}
 	return 0;
 }
