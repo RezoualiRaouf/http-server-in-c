@@ -93,6 +93,7 @@ int main() {
 	if (client_fd == -1) {
 		printf("Accept failed: %s\n", strerror(errno));
 		close(server_fd);
+		return 1;
 	}
 	
 	/* Log client connection info */
@@ -109,10 +110,9 @@ int main() {
 	if (recv_rq <= 0) {
 		printf("recv failed : %s\n", strerror(errno));
 		close(client_fd);
-		continue; // stop the loop and go to the next client same for the other continue statments
+		continue; // stop the loop and go to the next client
 	}
 	
-
 	http_request request_data = parse_http_request(req)	;
 	
 	if(!request_data.valid){
@@ -130,7 +130,6 @@ int main() {
 				close(client_fd);
 				continue;
 		}
-		close(client_fd);
 	/* Route: "/echo/*" - Echo back the text after /echo/ */
 	} else if (strncmp(request_data.path, "/echo/", 6) == 0) {
 		
@@ -148,7 +147,6 @@ int main() {
 				close(client_fd);
 				continue;
 		}		
-		close(client_fd);
 		free(echo_str); /* Free dynamically allocated string */
 	
 	/* Rout: "/User-Agent*" back the users agent*/ 
@@ -159,14 +157,12 @@ int main() {
 					close(client_fd);
 					continue;
 			}
-			close(client_fd);
 
 	/* Route: Default - 404 Not Found */		
 	} else {
 		send_error_response(client_fd,404);	
-			close(client_fd);
-			continue;
 	}
+		close(client_fd);
 	}
 
 }
