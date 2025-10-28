@@ -75,7 +75,6 @@ int main() {
 	if (listen(server_fd, connection_backlog) != 0) {
 		printf("Listen failed: %s \n", strerror(errno));
 		close(server_fd);
-		return 1;
 	}
 	
 	printf("Waiting for a client to connect...\n");
@@ -86,14 +85,15 @@ int main() {
 	 * Returns new socket descriptor for this specific client
 	 */
 
-	 
-	 client_fd = accept(server_fd, (struct sockaddr *) &client_addr, 
+	while (1) {
+	
+	client_fd = accept(server_fd, (struct sockaddr *) &client_addr, 
 	                   (socklen_t *) &client_addr_len);
 	
 	if (client_fd == -1) {
 		printf("Accept failed: %s\n", strerror(errno));
 		close(server_fd);
-		return 1;
+		continue;
 	}
 	
 	/* Log client connection info */
@@ -110,8 +110,7 @@ int main() {
 	if (recv_rq <= 0) {
 		printf("recv failed : %s\n", strerror(errno));
 		close(client_fd);
-		close(server_fd);
-		return 1;
+		continue;
 	}
 	
 
@@ -121,8 +120,7 @@ int main() {
 		send_error_response(client_fd,400);
 		printf("error while parsing the request %s \n",strerror(errno));
 		close(client_fd);
-		close(server_fd);
-		return 1;
+		continue;
 	}
 
 	
@@ -131,8 +129,7 @@ int main() {
 		
 		if(!send_success_response(client_fd, NULL,NULL,1)){
 				close(client_fd);
-				close(server_fd);
-				return 1;
+				continue;
 		}
 
 	/* Route: "/echo/*" - Echo back the text after /echo/ */
@@ -144,15 +141,13 @@ int main() {
 		if (!echo_str) {
 			printf("malloc failed\n");
 			close(client_fd);
-			close(server_fd);
-			return 1;
+			continue;
 		}
 
 		if(!send_success_response(client_fd,echo_str,"text/plain",
 							strlen(echo_str))){
 				close(client_fd);
-				close(server_fd);
-				return 1;
+				continue;
 		}		
 		free(echo_str); /* Free dynamically allocated string */
 	
@@ -162,8 +157,7 @@ int main() {
 			if (!send_success_response(client_fd,request_data.user_agent,"text/plain",
 								strlen(request_data.user_agent))){
 					close(client_fd);
-					close(server_fd);				
-					return 1;
+					continue;
 			}
 			
 
@@ -171,8 +165,8 @@ int main() {
 	} else {
 		send_error_response(client_fd,404);	
 			close(client_fd);
-			close(server_fd);
-			return 1;
+			continue;
+	}
 	}
 	return 0;
 }
