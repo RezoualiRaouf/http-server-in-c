@@ -16,7 +16,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include "netlib.h"
-
+#include <pthread.h>
 
 int main() {
 	// Disable output buffering for immediate console output
