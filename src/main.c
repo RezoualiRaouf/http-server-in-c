@@ -18,6 +18,65 @@
 #include "netlib.h"
 #include <pthread.h>
 
+int handel_client(int client_fd){
+
+	char req[4096] = {0};
+	ssize_t recv_rq = recv(client_fd, req, sizeof(req) - 1, 0);
+ 
+	if (recv_rq <= 0) {
+		printf("recv failed : %s\n", strerror(errno));
+		close(client_fd);
+	}
+	
+	http_request request_data = parse_http_request(req)	;
+	
+	if(!request_data.valid){
+		send_error_response(client_fd,400);
+		printf("error while parsing the request %s \n",strerror(errno));
+		close(client_fd);
+	}
+
+	
+	if (strcmp(request_data.path, "/") == 0) {
+		
+		if(!send_success_response(client_fd, NULL,NULL,1)){
+				close(client_fd);
+		}
+
+	} else if (strncmp(request_data.path, "/echo/", 6) == 0) {
+		
+
+		char *echo_str = remove_first_n_copy(request_data.path, 6);
+
+		if (!echo_str) {
+			printf("malloc failed\n");
+			close(client_fd);
+		}
+
+		if(!send_success_response(client_fd,echo_str,"text/plain",
+							strlen(echo_str))){
+				close(client_fd);
+		}		
+		free(echo_str); /* Free dynamically allocated string */
+	
+
+	}else if (strncmp(request_data.path, "/user-agent",11) == 0) {
+
+			if (!send_success_response(client_fd,request_data.user_agent,"text/plain",
+								strlen(request_data.user_agent))){
+					close(client_fd);
+			}
+
+
+	} else {
+		send_error_response(client_fd,404);	
+	}
+		close(client_fd);
+
+	
+	return 1;
+}
+
 int main() {
 	// Disable output buffering for immediate console output
 	setbuf(stdout, NULL);
@@ -100,69 +159,7 @@ int main() {
 	printf("Client IP: %s\n", inet_ntoa(client_addr.sin_addr));
 	printf("Client Port: %d\n", ntohs(client_addr.sin_port));	
 	
-	/**
-	 * Receive HTTP request from client
-	 * Buffer size 4096 is sufficient for most HTTP headers
-	 */
-	char req[4096] = {0};
-	ssize_t recv_rq = recv(client_fd, req, sizeof(req) - 1, 0);
- 
-	if (recv_rq <= 0) {
-		printf("recv failed : %s\n", strerror(errno));
-		close(client_fd);
-		continue; // stop the loop and go to the next client
-	}
-	
-	http_request request_data = parse_http_request(req)	;
-	
-	if(!request_data.valid){
-		send_error_response(client_fd,400);
-		printf("error while parsing the request %s \n",strerror(errno));
-		close(client_fd);
-		continue;
-	}
-
-	
-	/* Route: "/" - Root endpoint */
-	if (strcmp(request_data.path, "/") == 0) {
-		
-		if(!send_success_response(client_fd, NULL,NULL,1)){
-				close(client_fd);
-				continue;
-		}
-	/* Route: "/echo/*" - Echo back the text after /echo/ */
-	} else if (strncmp(request_data.path, "/echo/", 6) == 0) {
-		
-		/* Extract text after "/echo/" (skip first 6 characters) */
-		char *echo_str = remove_first_n_copy(request_data.path, 6);
-
-		if (!echo_str) {
-			printf("malloc failed\n");
-			close(client_fd);
-			continue;
-		}
-
-		if(!send_success_response(client_fd,echo_str,"text/plain",
-							strlen(echo_str))){
-				close(client_fd);
-				continue;
-		}		
-		free(echo_str); /* Free dynamically allocated string */
-	
-	/* Rout: "/User-Agent*" back the users agent*/ 
-	}else if (strncmp(request_data.path, "/user-agent",11) == 0) {
-
-			if (!send_success_response(client_fd,request_data.user_agent,"text/plain",
-								strlen(request_data.user_agent))){
-					close(client_fd);
-					continue;
-			}
-
-	/* Route: Default - 404 Not Found */		
-	} else {
-		send_error_response(client_fd,404);	
-	}
-		close(client_fd);
-	}
-
+	handel_client(client_fd);
+	}	
+return 0;
 }
