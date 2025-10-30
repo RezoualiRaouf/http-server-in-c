@@ -26,7 +26,6 @@ int main() {
 	setbuf(stdout, NULL);
  	setbuf(stderr, NULL);
 
-
 	int server_fd, client_fd;
 	int client_addr_len;
 	struct sockaddr_in client_addr;

@@ -11,7 +11,6 @@ typedef struct http_request{
 	char content_type[128];
 	int content_length;
 	int valid;
-
 }http_request;
 
 void *handel_client(void *arg);

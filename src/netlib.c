@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 #include <unistd.h>
 
 
@@ -69,6 +70,45 @@ void *handel_client(void *arg){
 					return NULL;
 			}
 
+	}else if (strncmp(request_data.path,"/files/",7)) {
+		
+		char *file_name = remove_first_n_copy(request_data.path,7);
+		if (!file_name) {
+			printf("malloc failed\n");
+			close(client_fd);
+			return NULL;
+		}
+		
+		FILE *fp = fopen(file_name, "rb"); //rb => read binary mode
+		if (fp == NULL) {
+			printf("file note found %s \n",strerror(errno));
+			send_error_response(client_fd,404);
+			close(client_fd);
+			free(file_name);
+			return NULL;
+		}
+		// free the alocated space of the file we have the pointer to it
+		free(file_name);
+		//get file length
+		fseek(fp,0,SEEK_END);
+		// set sp pointer to the start of the file 
+		long size = ftell(fp);
+		fseek(fp,0,SEEK_SET); 	
+		
+		char *buffer = malloc(size);
+		if (!buffer){
+			printf("malloc failed: %s\n",strerror(errno));
+			close(client_fd);
+			fclose(fp);
+			return NULL;
+		}
+
+	size_t bytes_read = fread(buffer, 1, size, fp);
+	if (bytes_read != size) {
+			printf("failed to read the file: %s\n",strerror(errno));    
+  	  free(buffer);
+   		fclose(fp);
+		}
 	} else {
 		send_error_response(client_fd,404);	
 	}
