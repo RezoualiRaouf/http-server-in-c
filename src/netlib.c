@@ -12,6 +12,73 @@
 
 
 
+void *handel_client(void *arg){
+
+	int client_fd = *((int*)arg);
+	free(arg);
+	char req[4096] = {0};
+	ssize_t recv_rq = recv(client_fd, req, sizeof(req) - 1, 0);
+ 
+	if (recv_rq <= 0) {
+		printf("recv failed : %s\n", strerror(errno));
+		close(client_fd);
+		return NULL;
+	}
+	
+	http_request request_data = parse_http_request(req)	;
+	
+	if(!request_data.valid){
+		send_error_response(client_fd,400);
+		printf("error while parsing the request %s \n",strerror(errno));
+		close(client_fd);
+		return NULL;
+	}
+
+	
+	if (strcmp(request_data.path, "/") == 0) {
+		
+		if(!send_success_response(client_fd, NULL,NULL,1)){
+				close(client_fd);
+				return NULL;
+		}
+
+	} else if (strncmp(request_data.path, "/echo/", 6) == 0) {
+		
+
+		char *echo_str = remove_first_n_copy(request_data.path, 6);
+
+		if (!echo_str) {
+			printf("malloc failed\n");
+			close(client_fd);
+			return NULL;
+		}
+
+		if(!send_success_response(client_fd,echo_str,"text/plain",
+							strlen(echo_str))){
+				close(client_fd);
+				return NULL;
+		}		
+		free(echo_str); /* Free dynamically allocated string */
+	
+
+	}else if (strncmp(request_data.path, "/user-agent",11) == 0) {
+
+			if (!send_success_response(client_fd,request_data.user_agent,"text/plain",
+								strlen(request_data.user_agent))){
+					close(client_fd);
+					return NULL;
+			}
+
+	} else {
+		send_error_response(client_fd,404);	
+	}
+	
+	close(client_fd);
+
+	return NULL;
+}
+
+
 int send_error_response(int client_fd, int code){
 
 	char *reason;

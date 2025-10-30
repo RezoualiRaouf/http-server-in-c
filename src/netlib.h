@@ -14,7 +14,7 @@ typedef struct http_request{
 
 }http_request;
 
-
+void *handel_client(void *arg);
 int send_error_response(int client_fd, int code);
 int send_success_response(int client_fd, char *body, char *content_type, size_t content_length);
 int get_header_value(char req[],const char *header_name,char *out_value, size_t out_len);
