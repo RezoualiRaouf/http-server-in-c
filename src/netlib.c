@@ -97,7 +97,7 @@ void *handel_client(void *arg){
 					return NULL;
 			}
 
-	}else if (strncmp(request_data.path,"/files/",7)) {
+	}else if (strncmp(request_data.path,"/files/",7) == 0) {
 		
 		char *file_name = remove_first_n_copy(request_data.path,7);
 		if (!file_name) {
@@ -114,8 +114,6 @@ void *handel_client(void *arg){
 			free(file_name);
 			return NULL;
 		}
-		// free the alocated space of the file we have the pointer to it
-		free(file_name);
 		//get file length
 		fseek(fp,0,SEEK_END);
 		// set sp pointer to the start of the file 
@@ -137,9 +135,26 @@ void *handel_client(void *arg){
   	  free(buffer);
    		fclose(fp);
 			send_error_response(client_fd,404);
+			close(client_fd);
+			return NULL;
 		}
 		
+		if (ends_with(file_name, ".html")) {
+  	  request_data.content_type = "text/html";
+		} else if (ends_with(file_name, ".css")) {
+  			request_data.content_type = "text/css";
+		} else if (ends_with(file_name, ".png")) {
+			request_data.content_type = "image/png";
+		}else if (ends_with(file_name,".js")) {
+			request_data.content_type = "text/javascript";	
+		} else {
+			request_data.content_type = "application/octet-stream";
+		}
 		
+		free(file_name);
+		send_success_response(client_fd,buffer,request_data.content_type,size);
+		free(buffer);
+		close(client_fd);
 	} else {
 		send_error_response(client_fd,404);	
 	}
@@ -240,6 +255,7 @@ int get_header_value(char req[],const char *header_name,char *out_value, size_t 
 http_request parse_http_request(char req[]){
 
 	http_request parsed = {0};
+	parsed.content_type = NULL;
 	parsed.valid = 1;
 	
 	if (req == NULL){

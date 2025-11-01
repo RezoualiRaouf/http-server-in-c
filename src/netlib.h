@@ -8,7 +8,7 @@ typedef struct http_request{
 	char version[16];
 	char user_agent[256];
 	char host[256];
-	char content_type[128];
+	char *content_type;
 	int content_length;
 	int valid;
 }http_request;
