@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <link rel="stylesheet" href="./styles/style.css" />
+    <title>raouf rezouali</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <input id="menu" class="burger-menu-checkbox" type="checkbox" />
+        <label for="menu" class="burger-menu">
+          <div class="burger-menu-bar"></div>
+          <div class="burger-menu-bar"></div>
+          <div class="burger-menu-bar"></div>
+        </label>
+
+        <nav class="header-nav">
+          <ul class="header-nav-list">
+            <a href="#bio" class="header-nav-link nav__bio">bio</a>
+            <a href="#projects" class="header-nav-link nav__projects"
+              >projects</a
+            >
+            <a href="#skills" class="header-nav-link nav__skills">skills</a>
+            <a href="#contact" class="header-nav-link nav__contact">contact</a>
+          </ul>
+        </nav>
+        <div class="header-toggle-theme-btn">
+          <h3 class="theme-btn-text">switch theme</h3>
+          <input type="checkbox" id="checkbox-id" class="checkbox-input" />
+          <label for="checkbox-id" class="theme-btn-lable"></label>
+        </div>
+      </div>
+      <section class="section-base bio section-with-bg" id="bio">
+        <h1 class="bio__heading">Hi There I'm Raouf Rezouali</h1>
+        <div class="bio__description">
+          <div class="bio__descrepition_container">
+            <h3 class="bio__description_text"></h3>
+          </div>
+          <div class="bio__description_social_list">
+            <a
+              href="https://www.linkedin.com/in/raoufrezouali/"
+              class="bio__description_social_link"
+              target="_blank"
+            >
+              <i class="fab fa-linkedin-in"></i>
+            </a>
+            <a
+              href="https://mail.google.com/mail/u/0/?fs=1&to=raouf.rezouali@univ-bouira.dz&tf=cm"
+              class="bio__description_social_link"
+              target="_blank"
+            >
+              <i class="fas fa-envelope"></i>
+            </a>
+            <a
+              href="https://github.com/RezoualiRaouf"
+              class="bio__description_social_link"
+              target="_blank"
+            >
+              <i class="fab fa-github"></i>
+            </a>
+          </div>
+          <div class="bio__cv">
+            <a class="bio__paragraph" href="#contact">say hi!</a>
+            <a class="bio__btn" href="/#">download cv</a>
+          </div>
+        </div>
+        <img
+          class="bio__img"
+          src="images/undraw_talking-on-the-phone_lc9v.svg"
+          alt="profile-pic"
+        />
+      </section>
+      <section class="project section-base" id="projects">
+        <h2 class="section__heading skills__heading">My Featured Projects</h2>
+        <ul class="project__list">
+          <li class="project__item" id="plugin-project">
+            <img
+              src="/images/wp_email_restriction_logo.png"
+              alt="email restriction plugin for wordpress"
+              class="project__item_img"
+              id="project__item_img_plugin"
+            />
+            <div class="project__description">
+              <h3 class="project__item_heading">WP plugin</h3>
+              <p class="project__item_description">
+                WP Email Restriction - A WordPress security plugin that
+                restricts site access to users with approved email domains.
+                Perfect for corporate intranets and private communities.
+              </p>
+              <a
+                class="project__item_link"
+                href="https://github.com/RezoualiRaouf/wp-email-restrection.git"
+                target="_blank"
+                >Github</a
+              >
+            </div>
+          </li>
+          <li class="project__item">
+            <div class="project__description">
+              <h3 class="project__item_heading">Library website</h3>
+              <p class="project__item_description">
+                A specialized WordPress website for the University of Bouira's
+                Faculty library. Features a rich digital collection of Arabic
+                and foreign language resources for academic research.
+              </p>
+              <a
+                class="project__item_link"
+                target="_blank"
+                href="https://www.univ-bouira.dz/bibfshs/"
+                >Visit site</a
+              >
+            </div>
+
+            <img
+              src="/images/univ-website.png"
+              alt="email restriction plugin for wordpress"
+              class="project__item_img"
+              id="project__item_img_website"
+            />
+          </li>
+        </ul>
+      </section>
+      <section class="section-base section-with-bg skills" id="skills">
+        <h2 class="section__heading bg">Skills</h2>
+        <ul class="skills__list">
+          <li class="skills__item">
+            <h3 class="skills__item_heading">C / Problem Solving</h3>
+            <p class="skills__item_paragraph">3 Years</p>
+          </li>
+          <li class="skills__item">
+            <h3 class="skills__item_heading">Python</h3>
+            <p class="skills__item_paragraph">2 Years</p>
+          </li>
+          <li class="skills__item">
+            <h3 class="skills__item_heading">Wordpress</h3>
+            <p class="skills__item_paragraph">1 Year</p>
+          </li>
+          <li class="skills__item">
+            <h3 class="skills__item_heading">Command Line</h3>
+            <p class="skills__item_paragraph">3 years</p>
+          </li>
+          <li class="skills__item">
+            <h3 class="skills__item_heading">HTML/CSS/JS</h3>
+            <p class="skills__item_paragraph">2 Years</p>
+          </li>
+          <li class="skills__item">
+            <h3 class="skills__item_heading">Git/GitHub</h3>
+            <p class="skills__item_paragraph">3 years</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="section-base" id="contact">
+        <div class="contact">
+          <div class="contact__item">
+            <p class="contact__item_p">
+              Feel free to reach out to me any time. I prefer to talk over
+              email, especially since we may be a few time zones away.
+            </p>
+            <a
+              href="https://mail.google.com/mail/u/0/?fs=1&to=raouf.rezouali@univ-bouira.dz&tf=cm"
+              target="_blank"
+              class="contact__item_email"
+              >raouf.rezouali@univ-bouira.dz</a
+            >
+            <div class="bio__description_social_list">
+              <a
+                href="https://www.linkedin.com/in/raoufrezouali/"
+                class="bio__description_social_link"
+                target="_blank"
+              >
+                <i class="fab fa-linkedin-in"></i>
+              </a>
+              <a
+                href="https://mail.google.com/mail/u/0/?fs=1&to=raouf.rezouali@univ-bouira.dz&tf=cm"
+                class="bio__description_social_link"
+                target="_blank"
+              >
+                <i class="fas fa-envelope"></i>
+              </a>
+              <a
+                href="https://github.com/RezoualiRaouf"
+                class="bio__description_social_link"
+                target="_blank"
+              >
+                <i class="fab fa-github"></i>
+              </a>
+            </div>
+          </div>
+
+          <div class="contact__item">
+            <div class="inner__container">
+              <h2 class="section__heading">
+                Let's Work <br />
+                Together!
+              </h2>
+              <div class="tooltip-container">
+                <button class="tooltip-trigger" type="button">
+                  <svg class="tooltip-icon" viewBox="0 0 24 24">
+                    <path
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    ></path>
+                  </svg>
+                </button>
+                <div class="tooltip-content">
+                  <div class="tooltip-inner">
+                    <div class="tooltip-header">
+                      <div class="tooltip-icon-container">
+                        <svg
+                          class="tooltip-info-icon"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fill-rule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                            clip-rule="evenodd"
+                          ></path>
+                        </svg>
+                      </div>
+                      <h3 class="tooltip-title">Form submission</h3>
+                    </div>
+                    <div class="tooltip-body">
+                      <p class="tooltip-description">
+                        You have 2/2 submissions left
+                      </p>
+                    </div>
+                    <div class="tooltip-footer">
+                      <svg
+                        class="tooltip-check-icon"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clip-rule="evenodd"
+                        ></path>
+                      </svg>
+                      <span class="tooltip-footer-text">restarts in 24h</span>
+                    </div>
+                    <div class="tooltip-arrow"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <form id="contactForm" class="contact__item_form">
+              <input
+                class="contact__input"
+                type="text"
+                placeholder="* Full name"
+                id="form__name_input"
+                name="name"
+                required
+              />
+              <input
+                class="contact__input"
+                type="email"
+                placeholder="* Email"
+                id="form__ph_input"
+                name="email"
+                required
+              />
+              <textarea
+                class="contact__input"
+                placeholder="* Your Message"
+                name="message"
+                id="form__msg_input"
+                rows="1"
+                required
+              ></textarea>
+              <input type="submit" id="form__submit_btn" value="Send Message" />
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <div class="popup-overlay" id="thankYouPopup">
+        <div class="popup-content">
+          <div class="success-icon"></div>
+          <h2>Thank You!</h2>
+          <p>
+            Your message has been sent successfully. I'll get back to you as
+            soon as possible!
+          </p>
+          <button class="popup-close-btn" onclick="closePopup()">Close</button>
+        </div>
+      </div>
+
+      <div class="popup-overlay" id="submitLimitPopup">
+        <div class="popup-content">
+          <div class="error-icon"></div>
+          <h2>Submition Failed!</h2>
+          <p>
+            You have exseded the allowed limit to submit this form resubmition
+            is after 24h
+          </p>
+          <button class="popup-close-btn" onclick="closePopup()">Close</button>
+        </div>
+      </div>
+
+      <div class="popup-overlay" id="errorPopup">
+        <div class="popup-content">
+          <div class="error-icon"></div>
+          <h2>Error accrued!</h2>
+          <p>Failed to send message. Please try again.</p>
+          <button class="popup-close-btn" onclick="closePopup()">Close</button>
+        </div>
+      </div>
+
+      <div class="back_to_top"></div>
+    </div>
+    <script src="scripts/animation.js"></script>
+    <script src="scripts/index.js"></script>
+    <script src="scripts/contactForm.js"></script>
+    <footer class="footer">&copy; 2025 By Rezouali Raouf</footer>
+  </body>
+</html>

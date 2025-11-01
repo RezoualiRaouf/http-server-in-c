@@ -147,7 +147,9 @@ void *handel_client(void *arg){
 			request_data.content_type = "image/png";
 		}else if (ends_with(file_name,".js")) {
 			request_data.content_type = "text/javascript";	
-		} else {
+		} else if (ends_with(file_name,".svg")) {
+			request_data.content_type = "image/svg+xml";
+		}else {
 			request_data.content_type = "application/octet-stream";
 		}
 		
