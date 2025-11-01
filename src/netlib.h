@@ -13,6 +13,7 @@ typedef struct http_request{
 	int valid;
 }http_request;
 
+int ends_with(char *input, char *extension);
 void *handel_client(void *arg);
 int send_error_response(int client_fd, int code);
 int send_success_response(int client_fd, char *body, char *content_type, size_t content_length);

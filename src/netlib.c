@@ -13,6 +13,33 @@
 
 
 
+int ends_with(char *input, char *extension){
+
+	if (input == NULL || extension == NULL)
+		return 0;
+
+	// get strings length
+	size_t input_len, ext_len;
+
+	input_len = strlen(input);
+	ext_len = strlen(extension);
+
+	if (ext_len < 1 || ext_len > input_len)
+		return 0;
+	
+	size_t start_index = input_len - ext_len;
+
+	while (*extension != '\0') {
+		
+		if (*extension != input[start_index])	
+			return 0;
+		extension++;
+		start_index++;
+	}
+
+	return 1;
+}
+
 void *handel_client(void *arg){
 
 	int client_fd = *((int*)arg);
@@ -98,6 +125,7 @@ void *handel_client(void *arg){
 		char *buffer = malloc(size);
 		if (!buffer){
 			printf("malloc failed: %s\n",strerror(errno));
+			send_error_response(client_fd,404);
 			close(client_fd);
 			fclose(fp);
 			return NULL;
@@ -108,7 +136,10 @@ void *handel_client(void *arg){
 			printf("failed to read the file: %s\n",strerror(errno));    
   	  free(buffer);
    		fclose(fp);
+			send_error_response(client_fd,404);
 		}
+		
+		
 	} else {
 		send_error_response(client_fd,404);	
 	}
