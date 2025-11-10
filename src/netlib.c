@@ -11,293 +11,317 @@
 #include <time.h>
 #include <unistd.h>
 
+// External global variables from main.c
+extern char *g_directory;
+extern char *g_single_file;
 
-int set_server_adds(int server_fd, int port){
-
-	struct sockaddr_in serv_addr = { 
-		.sin_family = AF_INET,
-		.sin_port = htons(port),
-		.sin_addr = { htonl(INADDR_ANY) },
-	};
-	
-	/* Bind socket to address and port */
-	if (bind(server_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) != 0) {
-		printf("Bind failed: %s \n", strerror(errno));
-		close(server_fd);
-	}	
-	return 1;	
+int set_server_adds(int server_fd, int port) {
+    struct sockaddr_in serv_addr = { 
+        .sin_family = AF_INET,
+        .sin_port = htons(port),
+        .sin_addr = { htonl(INADDR_ANY) },
+    };
+    
+    /* Bind socket to address and port */
+    if (bind(server_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) != 0) {
+        printf("Bind failed: %s \n", strerror(errno));
+        close(server_fd);
+        return 0;
+    }   
+    return 1;   
 }
 
-int ends_with(char *input, char *extension){
+int ends_with(char *input, char *extension) {
+    if (input == NULL || extension == NULL)
+        return 0;
 
-	if (input == NULL || extension == NULL)
-		return 0;
+    // get strings length
+    size_t input_len, ext_len;
+    input_len = strlen(input);
+    ext_len = strlen(extension);
 
-	// get strings length
-	size_t input_len, ext_len;
+    if (ext_len < 1 || ext_len > input_len)
+        return 0;
+    
+    size_t start_index = input_len - ext_len;
 
-	input_len = strlen(input);
-	ext_len = strlen(extension);
+    while (*extension != '\0') {
+        if (*extension != input[start_index])   
+            return 0;
+        extension++;
+        start_index++;
+    }
 
-	if (ext_len < 1 || ext_len > input_len)
-		return 0;
-	
-	size_t start_index = input_len - ext_len;
-
-	while (*extension != '\0') {
-		
-		if (*extension != input[start_index])	
-			return 0;
-		extension++;
-		start_index++;
-	}
-
-	return 1;
+    return 1;
 }
 
-void *handel_client(void *arg){
+void serve_file(int client_fd, const char *filepath) {
+    FILE *fp = fopen(filepath, "rb");
+    if (!fp) {
+        fprintf(stderr, "File not found: %s\n", filepath);
+        send_error_response(client_fd, 404);
+        return;
+    }
 
-	int client_fd = *((int*)arg);
-	free(arg);
-	char req[4096] = {0};
-	ssize_t recv_rq = recv(client_fd, req, sizeof(req) - 1, 0);
+    // Get file size
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    // Check for empty file
+    if (size == 0) {
+        fclose(fp);
+        send_success_response(client_fd, NULL, get_content_type(filepath), 0);
+        return;
+    }
+
+    // Allocate buffer
+    char *buffer = malloc(size);
+    if (!buffer) {
+        fprintf(stderr, "malloc failed for file buffer\n");
+        fclose(fp);
+        send_error_response(client_fd, 500);
+        return;
+    }
+
+    // Read file
+    size_t bytes_read = fread(buffer, 1, size, fp);
+    fclose(fp);
+
+    if (bytes_read != (size_t)size) {
+        fprintf(stderr, "Failed to read file completely\n");
+        free(buffer);
+        send_error_response(client_fd, 500);
+        return;
+    }
+
+    // Send response
+    char *content_type = get_content_type(filepath);
+    send_success_response(client_fd, buffer, content_type, size);
+
+    free(buffer);
+}
+
+char *get_content_type(const char *filename) {
+    if (ends_with((char *)filename, ".html") || ends_with((char *)filename, ".htm")) {
+        return "text/html";
+    } else if (ends_with((char *)filename, ".css")) {
+        return "text/css";
+    } else if (ends_with((char *)filename, ".js")) {
+        return "text/javascript";
+    } else if (ends_with((char *)filename, ".json")) {
+        return "application/json";
+    } else if (ends_with((char *)filename, ".png")) {
+        return "image/png";
+    } else if (ends_with((char *)filename, ".jpg") || ends_with((char *)filename, ".jpeg")) {
+        return "image/jpeg";
+    } else if (ends_with((char *)filename, ".gif")) {
+        return "image/gif";
+    } else if (ends_with((char *)filename, ".svg")) {
+        return "image/svg+xml";
+    } else if (ends_with((char *)filename, ".txt")) {
+        return "text/plain";
+    } else {
+        return "application/octet-stream";
+    }
+}
+
+void *handel_client(void *arg) {
+    int client_fd = *((int*)arg);
+    free(arg);
+    
+    char req[4096] = {0};
+    ssize_t recv_rq = recv(client_fd, req, sizeof(req) - 1, 0);
  
-	if (recv_rq <= 0) {
-		printf("recv failed : %s\n", strerror(errno));
-		close(client_fd);
-		return NULL;
-	}
-	
-	http_request request_data = parse_http_request(req)	;
-	
-	if(!request_data.valid){
-		send_error_response(client_fd,400);
-		printf("error while parsing the request %s \n",strerror(errno));
-		close(client_fd);
-		return NULL;
-	}
+    if (recv_rq <= 0) {
+        printf("recv failed : %s\n", strerror(errno));
+        close(client_fd);
+        return NULL;
+    }
+    
+    http_request request_data = parse_http_request(req);
+    
+    if (!request_data.valid) {
+        send_error_response(client_fd, 400);
+        printf("error while parsing the request %s \n", strerror(errno));
+        close(client_fd);
+        return NULL;
+    }
 
-	
-	if (strcmp(request_data.path, "/") == 0) {
-		
-		if(!send_success_response(client_fd, NULL,NULL,1)){
-				close(client_fd);
-				return NULL;
-		}
+    printf("Request: %s %s\n", request_data.method, request_data.path);
 
-	} else if (strncmp(request_data.path, "/echo/", 6) == 0) {
-		
+    // Only handle GET requests
+    if (strcmp(request_data.method, "GET") != 0) {
+        send_error_response(client_fd, 405);  // Method Not Allowed
+        close(client_fd);
+        return NULL;
+    }
 
-		char *echo_str = remove_first_n_copy(request_data.path, 6);
+    // Single file mode - serve same file for all requests
+    if (g_single_file) {
+        serve_file(client_fd, g_single_file);
+        close(client_fd);
+        return NULL;
+    }
 
-		if (!echo_str) {
-			printf("malloc failed\n");
-			close(client_fd);
-			return NULL;
-		}
+    // Directory mode
+    if (g_directory) {
+        // Handle root path
+        if (strcmp(request_data.path, "/") == 0) {
+            // Try to serve index.html
+            char index_path[512];
+            snprintf(index_path, sizeof(index_path), "%s/index.html", g_directory);
+            serve_file(client_fd, index_path);
+            close(client_fd);
+            return NULL;
+        } 
+        // Handle /files/* path
+        else if (strncmp(request_data.path, "/files/", 7) == 0) {
+            // Extract filename
+            char *file_name = remove_first_n_copy(request_data.path, 7);
+            if (!file_name) {
+                printf("malloc failed\n");
+                send_error_response(client_fd, 500);
+                close(client_fd);
+                return NULL;
+            }
+            
+            // Security check: prevent path traversal
+            if (strstr(file_name, "..") != NULL || strchr(file_name, '/') != NULL) {
+                send_error_response(client_fd, 403);  // Forbidden
+                free(file_name);
+                close(client_fd);
+                return NULL;
+            }
 
-		if(!send_success_response(client_fd,echo_str,"text/plain",
-							strlen(echo_str))){
-				close(client_fd);
-				return NULL;
-		}		
-		free(echo_str); /* Free dynamically allocated string */
-	
+            // Build full path
+            char full_path[512];
+            snprintf(full_path, sizeof(full_path), "%s/%s", g_directory, file_name);
+            free(file_name);
+            
+            serve_file(client_fd, full_path);
+            close(client_fd);
+            return NULL;
+        }
+        // Any other path
+        else {
+            send_error_response(client_fd, 404);
+            close(client_fd);
+            return NULL;
+        }
+    }
 
-	}else if (strncmp(request_data.path, "/user-agent",11) == 0) {
-
-			if (!send_success_response(client_fd,request_data.user_agent,"text/plain",
-								strlen(request_data.user_agent))){
-					close(client_fd);
-					return NULL;
-			}
-
-	}else if (strncmp(request_data.path,"/files/",7) == 0) {
-		
-		char *file_name = remove_first_n_copy(request_data.path,7);
-		if (!file_name) {
-			printf("malloc failed\n");
-			close(client_fd);
-			return NULL;
-		}
-		
-		FILE *fp = fopen(file_name, "rb"); //rb => read binary mode
-		if (fp == NULL) {
-			printf("file note found %s \n",strerror(errno));
-			send_error_response(client_fd,404);
-			close(client_fd);
-			free(file_name);
-			return NULL;
-		}
-		//get file length
-		fseek(fp,0,SEEK_END);
-		// set sp pointer to the start of the file 
-		long size = ftell(fp);
-		fseek(fp,0,SEEK_SET); 	
-		
-		char *buffer = malloc(size);
-		if (!buffer){
-			printf("malloc failed: %s\n",strerror(errno));
-			send_error_response(client_fd,404);
-			close(client_fd);
-			fclose(fp);
-			return NULL;
-		}
-
-	size_t bytes_read = fread(buffer, 1, size, fp);
-	if (bytes_read != size) {
-			printf("failed to read the file: %s\n",strerror(errno));    
-  	  free(buffer);
-   		fclose(fp);
-			send_error_response(client_fd,404);
-			close(client_fd);
-			return NULL;
-		}
-		
-		if (ends_with(file_name, ".html")) {
-  	  request_data.content_type = "text/html";
-		} else if (ends_with(file_name, ".css")) {
-  			request_data.content_type = "text/css";
-		} else if (ends_with(file_name, ".png")) {
-			request_data.content_type = "image/png";
-		}else if (ends_with(file_name,".js")) {
-			request_data.content_type = "text/javascript";	
-		} else if (ends_with(file_name,".svg")) {
-			request_data.content_type = "image/svg+xml";
-		}else {
-			request_data.content_type = "application/octet-stream";
-		}
-		
-		free(file_name);
-		send_success_response(client_fd,buffer,request_data.content_type,size);
-		free(buffer);
-		close(client_fd);
-	} else {
-		send_error_response(client_fd,404);	
-	}
-	
-	close(client_fd);
-
-	return NULL;
+    // No mode configured (shouldn't happen)
+    send_error_response(client_fd, 500);
+    close(client_fd);
+    return NULL;
 }
 
-
-int send_error_response(int client_fd, int code){
-
-	char *reason;
-   switch (code) {
+int send_error_response(int client_fd, int code) {
+    char *reason;
+    switch (code) {
         case 400: reason = "Bad Request"; break;
         case 401: reason = "Unauthorized"; break;
         case 403: reason = "Forbidden"; break;
         case 404: reason = "Not Found"; break;
+        case 405: reason = "Method Not Allowed"; break;
         case 408: reason = "Request Timeout"; break;
         default:  reason = "Internal Server Error"; code = 500; break;
     }
-	
-	char hdr[256];
-	snprintf(hdr,sizeof(hdr), "HTTP/1.1 %d %s\r\n Content-Length: 0\r\n Connection:	close\r\n\r\n", code , reason);
-	
-	if (send(client_fd,hdr,strlen(hdr),0) < 0){
-				printf("error in sending : %s \n",strerror(errno));
-				return 0;
-	}
-	return 1;
+    
+    char hdr[256];
+    snprintf(hdr, sizeof(hdr), "HTTP/1.1 %d %s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", code, reason);
+    
+    if (send(client_fd, hdr, strlen(hdr), 0) < 0) {
+        printf("error in sending : %s \n", strerror(errno));
+        return 0;
+    }
+    return 1;
 }
-
 
 int send_success_response(int client_fd, char *body, char *content_type, size_t content_length) {
-
-  char hdr[512];
+    char hdr[512];
     
     if (body == NULL) {
-        snprintf(hdr, sizeof(hdr),  "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+        snprintf(hdr, sizeof(hdr), "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
         if (send(client_fd, hdr, strlen(hdr), 0) < 0) {
             printf("error in sending: %s\n", strerror(errno));
-						return 0;
+            return 0;
         }
-				return 1;
+        return 1;
+    } else {
+        if (content_type == NULL)
+            content_type = "application/octet-stream";
+    
+        snprintf(hdr, sizeof(hdr), 
+                 "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n",
+                 content_type, content_length);
+                 
+        if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
+            send(client_fd, body, content_length, 0) < 0) {
+            printf("error in sending: %s\n", strerror(errno));
+            return 0;
+        }
+    }   
 
-    }else{
-				if (content_type == NULL)
-					content_type = "application/octet-stream";
-	
-				snprintf(hdr, sizeof(hdr), 
-  	          "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n",
-              content_type, content_length);
-
-								 
-		    if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
- 	      		send(client_fd, body,content_length, 0) < 0) {
-  	        printf("error in sending: %s\n", strerror(errno));
-					return 0;
-   		 }
-		}	
-
-	return 1;
+    return 1;
 }
 
+int get_header_value(char req[], const char *header_name, char *out_value, size_t out_len) {
+    if (!req || !header_name || !out_value) 
+        return 0;
 
-int get_header_value(char req[],const char *header_name,char *out_value, size_t out_len){
+    char search_arr[128] = {0};
+    snprintf(search_arr, sizeof(search_arr), "%s: ", header_name);
 
-	if (!req || !header_name || !out_value) 
-		return 0;
+    // find the start of the string
+    char *start_value = strstr(req, search_arr);
 
-	char search_arr[128] = {0}; //helps in getting the length of the first part of the header
-	snprintf(search_arr, sizeof(search_arr),"%s: ", header_name);
+    if (!start_value) return 0;
+    
+    start_value += strlen(search_arr);
 
-	// find the start of the string
-	char *start_value = strstr(req, search_arr);  // return a pointer to the start of the needed data of the header
+    // find the end of the string 
+    char *end_value = strstr(start_value, "\r\n");
 
-	if (!start_value) return 0;
-	
-	start_value += strlen(search_arr);  //skip the unwanted format exp "User-Agent:"
+    if (!end_value) return 0;
 
-	// find the end of the string 
-	char *end_value = strstr(start_value, "\r\n");
+    // calc the length and copy it
+    ssize_t in_len = end_value - start_value;   
+        
+    if (in_len >= (ssize_t)out_len) in_len = out_len - 1; 
+        
+    strncpy(out_value, start_value, in_len);
+    out_value[in_len] = '\0';
 
-	if (!end_value) return 0;
-
-	// calc the length and copy it
-		ssize_t in_len = end_value - start_value;	
-		
-	if (in_len >= out_len) in_len = out_len -1;	
-		
-	strncpy(out_value,start_value,in_len);
-	out_value[in_len] = '\0';
-
-	return 1;
+    return 1;
 }
 
+http_request parse_http_request(char req[]) {
+    http_request parsed = {0};
+    parsed.content_type = NULL;
+    parsed.valid = 1;
+    
+    if (req == NULL) {
+        parsed.valid = 0;
+        return parsed;
+    }
 
-http_request parse_http_request(char req[]){
+    if (sscanf(req, "%15s %255s %15s", parsed.method, parsed.path, parsed.version) != 3) {
+        printf("parsing request failed : %s\n", strerror(errno));
+        parsed.valid = 0;
+        return parsed;
+    }
+    
+    get_header_value(req, "User-Agent", parsed.user_agent, sizeof(parsed.user_agent));
+    get_header_value(req, "Host", parsed.host, sizeof(parsed.host));
 
-	http_request parsed = {0};
-	parsed.content_type = NULL;
-	parsed.valid = 1;
-	
-	if (req == NULL){
-		parsed.valid = 0;
-		return parsed;
-	}
+    char content_length[32] = {0};
+    if (get_header_value(req, "Content-Length", content_length, sizeof(content_length)))
+        parsed.content_length = atoi(content_length);
 
-	if (sscanf(req, "%15s %255s %15s",parsed.method,parsed.path,parsed.version) != 3) {
-		printf("parsing request failed : %s\n",strerror(errno));
-		parsed.valid = 0;
-		return parsed;
-	}
-	
-	get_header_value(req,"User-Agent",parsed.user_agent,sizeof(parsed.user_agent));
-	get_header_value(req,"Host",parsed.host,sizeof(parsed.host));
-	get_header_value(req,"Content-Type",parsed.content_type,sizeof(parsed.content_type));
-
-
-	char content_length[32] = {0};
-	if (get_header_value(req,"Content-Length",content_length,sizeof(content_length)))
-		parsed.content_length = atoi(content_length);
-
-	return parsed;
+    return parsed;
 }
-
 
 /**
  * Remove first n characters from a string and return a new malloc'd copy.

@@ -1,8 +1,10 @@
 /**
- * HTTP/1.1 Server
+ * HTTP/1.1 Server with Command-Line Arguments
  * 
- * A HTTP server that handles GET requests on port 4221.
- *
+ * Usage:
+ *   ./server -f <file>           Serve single file to all requests
+ *   ./server -d <directory>      Serve files from directory
+ *   ./server -p <port>           Custom port (default: 4221)
  */
 
 #include <sched.h>
@@ -19,122 +21,148 @@
 #include "netlib.h"
 #include <pthread.h>
 
+// Global configuration
+static char *g_directory = NULL;
+static char *g_single_file = NULL;
 
+int main(int ac, char **av) {
+    // Disable output buffering for immediate console output
+    setbuf(stdout, NULL);
+    setbuf(stderr, NULL);
 
-int main(int ac,char **av) {
-	// Disable output buffering for immediate console output
-	setbuf(stdout, NULL);
- 	setbuf(stderr, NULL);
-
-	  char *directory = NULL;
-    char *single_file = NULL;
     int port = 4221;
     int opt;
-    
-    // getopt automatically handles -d, -f, -p
-    while ((opt = getopt(ac, av, "d:f:p:")) != -1) {
+
+    // Parse command-line arguments
+    while ((opt = getopt(ac, av, "d:f:p:h")) != -1) {
         switch (opt) {
             case 'd':
-                directory = optarg;
+                g_directory = optarg;
                 break;
             case 'f':
-                single_file = optarg;
+                g_single_file = optarg;
                 break;
             case 'p':
                 port = atoi(optarg);
+                if (port <= 0 || port > 65535) {
+                    fprintf(stderr, "Error: Invalid port number\n");
+                    return 1;
+                }
                 break;
+            case 'h':
             default:
                 fprintf(stderr, "Usage: %s [-d directory] [-f file] [-p port]\n", av[0]);
-                return 1;
+                fprintf(stderr, "  -d <directory>  Serve files from directory\n");
+                fprintf(stderr, "  -f <file>       Serve single file to all requests\n");
+                fprintf(stderr, "  -p <port>       Port number (default: 4221)\n");
+                return (opt == 'h') ? 0 : 1;
         }
     }
-	
-		printf("%s \n %d \n",directory,port);
-	int server_fd, client_fd;	
-	int client_addr_len;
-	struct sockaddr_in client_addr;
-	
-	/**
-	 * Create TCP socket (IPv4)
-	 * AF_INET: IPv4, SOCK_STREAM: TCP, 0: default protocol
-	 */
-	server_fd = socket(AF_INET, SOCK_STREAM, 0);
-	
-	if (server_fd == -1) {
-		printf("Socket creation failed: %s...\n", strerror(errno));
-		return 1;
-	}
-	
-	/**
-	 * Enable SO_REUSEADDR to prevent "Address already in use" errors
-	 * Allows immediate port reuse after server restart
-	 */
-	int reuse = 1;
-	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
-		printf("SO_REUSEADDR failed: %s \n", strerror(errno));
-		close(server_fd);
-		return 1;
-	}
-	
-	/**
-	 * Configure server address: 0.0.0.0:4221
-	 * INADDR_ANY (0.0.0.0) accepts connections on all network interfaces
-	 */
 
-	set_server_adds(server_fd,port);
-	
-	/**
-	 * Start listening with backlog of 5 connections
-	 * Up to 5 pending connections can queue while server handles current request
-	 */
-	int connection_backlog = 7;
-	if (listen(server_fd, connection_backlog) != 0) {
-		printf("Listen failed: %s \n", strerror(errno));
-		close(server_fd);
-	}
-	
-	printf("Waiting for a client to connect...\n");
-	client_addr_len = sizeof(client_addr);
-	
-	/**
-	 * Accept incoming connection (blocks until client connects)
-	 * Returns new socket descriptor for this specific client
-	 */
+    // Validate arguments
+    if (g_directory && g_single_file) {
+        fprintf(stderr, "Error: Cannot use both -d and -f\n");
+        return 1;
+    }
 
-	while (1) {
-	
-	client_fd = accept(server_fd, (struct sockaddr *) &client_addr, 
-	                   (socklen_t *) &client_addr_len);
-	
-	if (client_fd == -1) {
-		printf("Accept failed: %s\n", strerror(errno));
-		close(server_fd);
-		return 1;
-	}
+    if (g_single_file) {
+        // Verify single file exists
+        FILE *fp = fopen(g_single_file, "rb");
+        if (!fp) {
+            fprintf(stderr, "Error: Cannot open file '%s': %s\n", g_single_file, strerror(errno));
+            return 1;
+        }
+        fclose(fp);
+        printf("Server mode: Single file (%s)\n", g_single_file);
+    } else if (g_directory) {
+        printf("Server mode: Directory (%s)\n", g_directory);
+    } else {
+        // Default to current directory
+        g_directory = ".";
+        printf("Server mode: Directory (current directory)\n");
+    }
 
-	pthread_t t;
-	int *client_fd_ptr = malloc(sizeof(int));
-	if (client_fd_ptr == NULL) {
-		printf("alocation failed %s \n",strerror(errno));
-		close(client_fd);
-		continue;
-	}
-	
-	*client_fd_ptr = client_fd;
-	
-	if(pthread_create(&t,NULL,handel_client,client_fd_ptr) != 0)
-	{
-		perror("failed to create a theread");
-		free(client_fd_ptr);
-		close(client_fd);
-		continue;
-	}
+    int server_fd, client_fd;
+    int client_addr_len;
+    struct sockaddr_in client_addr;
 
-	pthread_detach(t);
-	/* Log client connection info */
-	printf("Client IP: %s\n", inet_ntoa(client_addr.sin_addr));
-	printf("Client Port: %d\n", ntohs(client_addr.sin_port));	
-	
-	}	
-return 0;
+    /**
+     * Create TCP socket (IPv4)
+     * AF_INET: IPv4, SOCK_STREAM: TCP, 0: default protocol
+     */
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (server_fd == -1) {
+        printf("Socket creation failed: %s...\n", strerror(errno));
+        return 1;
+    }
+
+    /**
+     * Enable SO_REUSEADDR to prevent "Address already in use" errors
+     * Allows immediate port reuse after server restart
+     */
+    int reuse = 1;
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+        printf("SO_REUSEADDR failed: %s \n", strerror(errno));
+        close(server_fd);
+        return 1;
+    }
+
+    /**
+     * Configure server address and bind to port
+     */
+    set_server_adds(server_fd, port);
+
+    /**
+     * Start listening with backlog of 7 connections
+     */
+    int connection_backlog = 7;
+    if (listen(server_fd, connection_backlog) != 0) {
+        printf("Listen failed: %s \n", strerror(errno));
+        close(server_fd);
+        return 1;
+    }
+
+    printf("Server listening on port %d...\n", port);
+    client_addr_len = sizeof(client_addr);
+
+    /**
+     * Accept incoming connections (blocks until client connects)
+     * Returns new socket descriptor for this specific client
+     */
+    while (1) {
+        client_fd = accept(server_fd, (struct sockaddr *)&client_addr,
+                          (socklen_t *)&client_addr_len);
+
+        if (client_fd == -1) {
+            printf("Accept failed: %s\n", strerror(errno));
+            close(server_fd);
+            return 1;
+        }
+
+        pthread_t t;
+        int *client_fd_ptr = malloc(sizeof(int));
+        if (client_fd_ptr == NULL) {
+            printf("allocation failed %s \n", strerror(errno));
+            close(client_fd);
+            continue;
+        }
+
+        *client_fd_ptr = client_fd;
+
+        if (pthread_create(&t, NULL, handel_client, client_fd_ptr) != 0) {
+            perror("failed to create a thread");
+            free(client_fd_ptr);
+            close(client_fd);
+            continue;
+        }
+
+        pthread_detach(t);
+        /* Log client connection info */
+        printf("Client IP: %s\n", inet_ntoa(client_addr.sin_addr));
+        printf("Client Port: %d\n", ntohs(client_addr.sin_port));
+    }
+
+    close(server_fd);
+    return 0;
 }
