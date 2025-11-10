@@ -12,6 +12,21 @@
 #include <unistd.h>
 
 
+int set_server_adds(int server_fd, int port){
+
+	struct sockaddr_in serv_addr = { 
+		.sin_family = AF_INET,
+		.sin_port = htons(port),
+		.sin_addr = { htonl(INADDR_ANY) },
+	};
+	
+	/* Bind socket to address and port */
+	if (bind(server_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) != 0) {
+		printf("Bind failed: %s \n", strerror(errno));
+		close(server_fd);
+	}	
+	return 1;	
+}
 
 int ends_with(char *input, char *extension){
 

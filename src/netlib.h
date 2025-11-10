@@ -2,6 +2,7 @@
 #define NETLIB_H
 #include "stddef.h"
 
+
 typedef struct http_request{
 	char method[16];
 	char path[256];
@@ -13,6 +14,7 @@ typedef struct http_request{
 	int valid;
 }http_request;
 
+int set_server_adds(int server_fd, int port);
 int ends_with(char *input, char *extension);
 void *handel_client(void *arg);
 int send_error_response(int client_fd, int code);

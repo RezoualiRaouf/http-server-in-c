@@ -21,12 +21,36 @@
 
 
 
-int main() {
+int main(int ac,char **av) {
 	// Disable output buffering for immediate console output
 	setbuf(stdout, NULL);
  	setbuf(stderr, NULL);
 
-	int server_fd, client_fd;
+	  char *directory = NULL;
+    char *single_file = NULL;
+    int port = 4221;
+    int opt;
+    
+    // getopt automatically handles -d, -f, -p
+    while ((opt = getopt(ac, av, "d:f:p:")) != -1) {
+        switch (opt) {
+            case 'd':
+                directory = optarg;
+                break;
+            case 'f':
+                single_file = optarg;
+                break;
+            case 'p':
+                port = atoi(optarg);
+                break;
+            default:
+                fprintf(stderr, "Usage: %s [-d directory] [-f file] [-p port]\n", av[0]);
+                return 1;
+        }
+    }
+	
+		printf("%s \n %d \n",directory,port);
+	int server_fd, client_fd;	
 	int client_addr_len;
 	struct sockaddr_in client_addr;
 	
@@ -56,18 +80,8 @@ int main() {
 	 * Configure server address: 0.0.0.0:4221
 	 * INADDR_ANY (0.0.0.0) accepts connections on all network interfaces
 	 */
-	struct sockaddr_in serv_addr = { 
-		.sin_family = AF_INET,
-		.sin_port = htons(4221),
-		.sin_addr = { htonl(INADDR_ANY) },
-	};
-	
-	/* Bind socket to address and port */
-	if (bind(server_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) != 0) {
-		printf("Bind failed: %s \n", strerror(errno));
-		close(server_fd);
-		return 1;
-	}
+
+	set_server_adds(server_fd,port);
 	
 	/**
 	 * Start listening with backlog of 5 connections
