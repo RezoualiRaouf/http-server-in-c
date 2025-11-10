@@ -22,8 +22,8 @@
 #include <pthread.h>
 
 // Global configuration
-static char *g_directory = NULL;
-static char *g_single_file = NULL;
+ char *g_directory = NULL;
+ char *g_single_file = NULL;
 
 int main(int ac, char **av) {
     // Disable output buffering for immediate console output

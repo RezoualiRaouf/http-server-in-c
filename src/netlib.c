@@ -126,6 +126,7 @@ char *get_content_type(const char *filename) {
     }
 }
 
+
 void *handel_client(void *arg) {
     int client_fd = *((int*)arg);
     free(arg);
@@ -157,9 +158,28 @@ void *handel_client(void *arg) {
         return NULL;
     }
 
-    // Single file mode - serve same file for all requests
+    // Single file mode - check if requested path matches the filename
     if (g_single_file) {
-        serve_file(client_fd, g_single_file);
+        // Extract just the filename from g_single_file path
+        char *expected_filename = strrchr(g_single_file, '/');
+        if (expected_filename) {
+            expected_filename++; // Skip the '/'
+        } else {
+            expected_filename = g_single_file; // No directory in path
+        }
+        
+        // Build expected URL path: /filename.ext
+        char expected_path[512];
+        snprintf(expected_path, sizeof(expected_path), "/%s", expected_filename);
+        
+        // Check if requested path matches
+        if (strcmp(request_data.path, expected_path) == 0) {
+            serve_file(client_fd, g_single_file);
+        } else {
+            // Wrong path requested
+            printf("Single-file mode: Expected %s, got %s\n", expected_path, request_data.path);
+            send_error_response(client_fd, 404);
+        }
         close(client_fd);
         return NULL;
     }
@@ -175,37 +195,22 @@ void *handel_client(void *arg) {
             close(client_fd);
             return NULL;
         } 
-        // Handle /files/* path
-        else if (strncmp(request_data.path, "/files/", 7) == 0) {
-            // Extract filename
-            char *file_name = remove_first_n_copy(request_data.path, 7);
-            if (!file_name) {
-                printf("malloc failed\n");
-                send_error_response(client_fd, 500);
-                close(client_fd);
-                return NULL;
-            }
+        else {
+            // Remove leading slash from path
+            char *requested_path = request_data.path + 1; // Skip the '/'
             
             // Security check: prevent path traversal
-            if (strstr(file_name, "..") != NULL || strchr(file_name, '/') != NULL) {
+            if (strstr(requested_path, "..") != NULL) {
                 send_error_response(client_fd, 403);  // Forbidden
-                free(file_name);
                 close(client_fd);
                 return NULL;
             }
 
             // Build full path
             char full_path[512];
-            snprintf(full_path, sizeof(full_path), "%s/%s", g_directory, file_name);
-            free(file_name);
+            snprintf(full_path, sizeof(full_path), "%s/%s", g_directory, requested_path);
             
             serve_file(client_fd, full_path);
-            close(client_fd);
-            return NULL;
-        }
-        // Any other path
-        else {
-            send_error_response(client_fd, 404);
             close(client_fd);
             return NULL;
         }
