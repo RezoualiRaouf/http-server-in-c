@@ -22,8 +22,10 @@
 #include <pthread.h>
 
 // Global configuration
- char *g_directory = NULL;
- char *g_single_file = NULL;
+char *g_directory = NULL;
+char *g_single_file = NULL;
+static char *g_log_file = NULL;
+
 
 int main(int ac, char **av) {
     // Disable output buffering for immediate console output
@@ -34,7 +36,7 @@ int main(int ac, char **av) {
     int opt;
 
     // Parse command-line arguments
-    while ((opt = getopt(ac, av, "d:f:p:h")) != -1) {
+    while ((opt = getopt(ac, av, "d:f:p:l:h")) != -1) {
         switch (opt) {
             case 'd':
                 g_directory = optarg;
@@ -49,43 +51,49 @@ int main(int ac, char **av) {
                     return 1;
                 }
                 break;
+            case 'l':
+                g_log_file = optarg;
+                break;
             case 'h':
             default:
-                fprintf(stderr, "Usage: %s [-d directory] [-f file] [-p port]\n", av[0]);
+                fprintf(stderr, "Usage: %s [-d directory] [-f file] [-p port] [-l logfile]\n", av[0]);
                 fprintf(stderr, "  -d <directory>  Serve files from directory\n");
                 fprintf(stderr, "  -f <file>       Serve single file to all requests\n");
                 fprintf(stderr, "  -p <port>       Port number (default: 4221)\n");
+                fprintf(stderr, "  -l <logfile>    Log file path (default: stdout only)\n");
                 return (opt == 'h') ? 0 : 1;
         }
-    }
+    } 
 
     // Validate arguments
+
     if (g_directory && g_single_file) {
         fprintf(stderr, "Error: Cannot use both -d and -f\n");
         return 1;
     }
 
     if (g_single_file) {
-        // Verify single file exists
         FILE *fp = fopen(g_single_file, "rb");
         if (!fp) {
-            fprintf(stderr, "Error: Cannot open file '%s': %s\n", g_single_file, strerror(errno));
+            log_message(LOG_ERROR, "Cannot open file '%s': %s", g_single_file, strerror(errno));
             return 1;
         }
         fclose(fp);
-        printf("Server mode: Single file (%s)\n", g_single_file);
+        log_message(LOG_INFO, "Server mode: Single file (%s)", g_single_file);
     } else if (g_directory) {
-        printf("Server mode: Directory (%s)\n", g_directory);
+        log_message(LOG_INFO, "Server mode: Directory (%s)", g_directory);
     } else {
-        // Default to current directory
         g_directory = ".";
-        printf("Server mode: Directory (current directory)\n");
+        log_message(LOG_INFO, "Server mode: Directory (current directory)");
     }
 
     int server_fd, client_fd;
     int client_addr_len;
     struct sockaddr_in client_addr;
-
+    
+    init_logging(g_log_file);
+    log_message(LOG_INFO, "Server starting...");
+    
     /**
      * Create TCP socket (IPv4)
      * AF_INET: IPv4, SOCK_STREAM: TCP, 0: default protocol
@@ -93,8 +101,9 @@ int main(int ac, char **av) {
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
 
     if (server_fd == -1) {
-        printf("Socket creation failed: %s...\n", strerror(errno));
-        return 1;
+    log_message(LOG_ERROR, "Socket creation failed: %s", strerror(errno));
+    close_logging();
+    return 1;
     }
 
     /**
@@ -126,6 +135,8 @@ int main(int ac, char **av) {
     printf("Server listening on port %d...\n", port);
     client_addr_len = sizeof(client_addr);
 
+    log_message(LOG_INFO, "Server listening on port %d", port);
+    
     /**
      * Accept incoming connections (blocks until client connects)
      * Returns new socket descriptor for this specific client
@@ -164,5 +175,8 @@ int main(int ac, char **av) {
     }
 
     close(server_fd);
+
+    log_message(LOG_INFO, "Server shutting down");
+    close_logging();
     return 0;
 }

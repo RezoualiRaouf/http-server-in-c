@@ -13,6 +13,15 @@ typedef struct http_request {
     int valid;
 } http_request;
 
+// Log levels
+typedef enum {
+    LOG_INFO,
+    LOG_WARNING,
+    LOG_ERROR,
+    LOG_DEBUG
+} log_level;
+
+
 // Server setup
 int set_server_adds(int server_fd, int port);
 
@@ -38,5 +47,11 @@ int send_error_response(int client_fd, int code);
 int send_success_response(int client_fd, char *body, char *content_type, size_t content_length);
 int get_header_value(char req[], const char *header_name, char *out_value, size_t out_len);
 http_request parse_http_request(char req[]);
+
+// Logging functions
+void init_logging(const char *log_file);
+void close_logging(void);
+void log_message(log_level level, const char *format, ...);
+void log_request(const char *client_ip, const char *method, const char *path, int status_code, size_t bytes_sent);
 
 #endif

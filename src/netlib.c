@@ -10,10 +10,15 @@
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdarg.h>
+#include <pthread.h>
 
 // External global variables from main.c
 extern char *g_directory;
 extern char *g_single_file;
+static FILE *g_log_file = NULL;
+static pthread_mutex_t g_log_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 int set_server_adds(int server_fd, int port) {
     struct sockaddr_in serv_addr = { 
@@ -130,94 +135,129 @@ char *get_content_type(const char *filename) {
 void *handel_client(void *arg) {
     int client_fd = *((int*)arg);
     free(arg);
+		
+		struct sockaddr_in addr;
+    socklen_t addr_size = sizeof(addr);
+    char client_ip[INET_ADDRSTRLEN] = "unknown";
+    
+    if (getpeername(client_fd, (struct sockaddr *)&addr, &addr_size) == 0) {
+      inet_ntop(AF_INET, &addr.sin_addr, client_ip, sizeof(client_ip));
+    }
     
     char req[4096] = {0};
     ssize_t recv_rq = recv(client_fd, req, sizeof(req) - 1, 0);
  
     if (recv_rq <= 0) {
-        printf("recv failed : %s\n", strerror(errno));
-        close(client_fd);
-        return NULL;
+      log_message(LOG_ERROR, "recv failed from %s: %s", client_ip, strerror(errno));
+      close(client_fd);
+      return NULL;
     }
     
     http_request request_data = parse_http_request(req);
     
     if (!request_data.valid) {
-        send_error_response(client_fd, 400);
-        printf("error while parsing the request %s \n", strerror(errno));
-        close(client_fd);
-        return NULL;
+      send_error_response(client_fd, 400);
+      log_request(client_ip, "INVALID", request_data.path, 400, 0);
+			close(client_fd);
+      return NULL;
     }
 
     printf("Request: %s %s\n", request_data.method, request_data.path);
 
     // Only handle GET requests
     if (strcmp(request_data.method, "GET") != 0) {
-        send_error_response(client_fd, 405);  // Method Not Allowed
-        close(client_fd);
-        return NULL;
+ 			send_error_response(client_fd, 405);
+      log_request(client_ip, request_data.method, request_data.path, 405, 0);
+      return NULL;
     }
 
     // Single file mode - check if requested path matches the filename
     if (g_single_file) {
-        // Extract just the filename from g_single_file path
-        char *expected_filename = strrchr(g_single_file, '/');
-        if (expected_filename) {
-            expected_filename++; // Skip the '/'
-        } else {
-            expected_filename = g_single_file; // No directory in path
-        }
+      // Extract just the filename from g_single_file path
+      char *expected_filename = strrchr(g_single_file, '/');        if (expected_filename) {
+      expected_filename++; // Skip the '/'
+      } else {
+        expected_filename = g_single_file; // No directory in path
+      }
         
-        // Build expected URL path: /filename.ext
-        char expected_path[512];
-        snprintf(expected_path, sizeof(expected_path), "/%s", expected_filename);
+      // Build expected URL path: /filename.ext
+      char expected_path[512];
+      snprintf(expected_path, sizeof(expected_path), "/%s", expected_filename);
         
-        // Check if requested path matches
-        if (strcmp(request_data.path, expected_path) == 0) {
-            serve_file(client_fd, g_single_file);
-        } else {
-            // Wrong path requested
-            printf("Single-file mode: Expected %s, got %s\n", expected_path, request_data.path);
+      // Check if requested path matches
+      if (strcmp(request_data.path, expected_path) == 0) {
+        // Get file size for logging
+        FILE *fp = fopen(g_single_file, "rb");
+        long size = 0;
+				  if (fp) {
+    	      fseek(fp, 0, SEEK_END);
+	          size = ftell(fp);
+            fclose(fp);
+          }
+       
+					serve_file(client_fd, g_single_file);
+          log_request(client_ip, request_data.method, request_data.path, 200, size);
+
+      } else {
             send_error_response(client_fd, 404);
+            log_request(client_ip, request_data.method, request_data.path, 404, 0);
+      }
+      close(client_fd);
+      return NULL;
+    }
+
+    // Directory mode
+    if (g_directory) {
+        int status_code = 200;
+        size_t bytes_sent = 0;
+        
+        if (strcmp(request_data.path, "/") == 0) {
+            char index_path[512];
+            snprintf(index_path, sizeof(index_path), "%s/index.html", g_directory);
+            
+            FILE *fp = fopen(index_path, "rb");
+            if (fp) {
+                fseek(fp, 0, SEEK_END);
+                bytes_sent = ftell(fp);
+                fclose(fp);
+                serve_file(client_fd, index_path);
+            } else {
+                status_code = 404;
+                send_error_response(client_fd, 404);
+            }
+            log_request(client_ip, request_data.method, request_data.path, status_code, bytes_sent);
+        } else {
+            char *requested_path = request_data.path + 1;
+            
+            if (strstr(requested_path, "..") != NULL) {
+                send_error_response(client_fd, 403);
+                log_request(client_ip, request_data.method, request_data.path, 403, 0);
+                close(client_fd);
+                return NULL;
+            }
+
+            char full_path[512];
+            snprintf(full_path, sizeof(full_path), "%s/%s", g_directory, requested_path);
+            
+            FILE *fp = fopen(full_path, "rb");
+            if (fp) {
+                fseek(fp, 0, SEEK_END);
+                bytes_sent = ftell(fp);
+                fclose(fp);
+                serve_file(client_fd, full_path);
+                status_code = 200;
+            } else {
+                send_error_response(client_fd, 404);
+                status_code = 404;
+            }
+            log_request(client_ip, request_data.method, request_data.path, status_code, bytes_sent);
         }
         close(client_fd);
         return NULL;
     }
 
-    // Directory mode
-    if (g_directory) {
-        // Handle root path
-        if (strcmp(request_data.path, "/") == 0) {
-            // Try to serve index.html
-            char index_path[512];
-            snprintf(index_path, sizeof(index_path), "%s/index.html", g_directory);
-            serve_file(client_fd, index_path);
-            close(client_fd);
-            return NULL;
-        } 
-        else {
-            // Remove leading slash from path
-            char *requested_path = request_data.path + 1; // Skip the '/'
-            
-            // Security check: prevent path traversal
-            if (strstr(requested_path, "..") != NULL) {
-                send_error_response(client_fd, 403);  // Forbidden
-                close(client_fd);
-                return NULL;
-            }
-
-            // Build full path
-            char full_path[512];
-            snprintf(full_path, sizeof(full_path), "%s/%s", g_directory, requested_path);
-            
-            serve_file(client_fd, full_path);
-            close(client_fd);
-            return NULL;
-        }
-    }
-
-    // No mode configured (shouldn't happen)
     send_error_response(client_fd, 500);
+    log_request(client_ip, request_data.method, request_data.path, 500, 0);
     close(client_fd);
     return NULL;
 }
@@ -352,4 +392,110 @@ char *remove_first_n_copy(const char *s, size_t n) {
     }
     out[newlen] = '\0';
     return out;
+}
+
+/**
+ * Initialize logging system
+ * @param log_file - Path to log file, or NULL for stdout only
+ */
+
+void init_logging(const char *log_file) {
+    if (log_file) {
+        g_log_file = fopen(log_file, "a");  // Append mode
+        if (!g_log_file) {
+            fprintf(stderr, "Warning: Could not open log file '%s': %s\n", 
+                    log_file, strerror(errno));
+            fprintf(stderr, "Logging to stdout only.\n");
+        } else {
+            printf("Logging to file: %s\n", log_file);
+        }
+    }
+}
+
+/**
+ * Close logging system
+ */
+void close_logging(void) {
+    if (g_log_file) {
+        fclose(g_log_file);
+        g_log_file = NULL;
+    }
+}
+
+/**
+ * Get current timestamp string
+ */
+static void get_timestamp(char *buffer, size_t size) {
+    time_t now = time(NULL);
+    struct tm *tm_info = localtime(&now);
+    strftime(buffer, size, "%Y-%m-%d %H:%M:%S", tm_info);
+}
+
+/**
+ * Get log level string
+ */
+static const char* log_level_string(log_level level) {
+    switch (level) {
+        case LOG_INFO:    return "INFO";
+        case LOG_WARNING: return "WARN";
+        case LOG_ERROR:   return "ERROR";
+        case LOG_DEBUG:   return "DEBUG";
+        default:          return "UNKNOWN";
+    }
+}
+
+/**
+ * Log a formatted message
+ * Thread-safe with mutex protection
+ */
+void log_message(log_level level, const char *format, ...) {
+    char timestamp[64];
+    get_timestamp(timestamp, sizeof(timestamp));
+    
+    char message[1024];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(message, sizeof(message), format, args);
+    va_end(args);
+    
+    pthread_mutex_lock(&g_log_mutex);
+    
+    // Log to stdout
+    printf("[%s] [%s] %s\n", timestamp, log_level_string(level), message);
+    
+    // Log to file if available
+    if (g_log_file) {
+        fprintf(g_log_file, "[%s] [%s] %s\n", timestamp, log_level_string(level), message);
+        fflush(g_log_file);  // Ensure it's written immediately
+    }
+    
+    pthread_mutex_unlock(&g_log_mutex);
+}
+
+/**
+ * Log HTTP request in Apache Common Log Format
+ * Format: client_ip - - [timestamp] "METHOD path HTTP/1.1" status_code bytes_sent
+ */
+void log_request(const char *client_ip, const char *method, const char *path, 
+                 int status_code, size_t bytes_sent) {
+    char timestamp[64];
+    time_t now = time(NULL);
+    struct tm *tm_info = localtime(&now);
+    strftime(timestamp, sizeof(timestamp), "%d/%b/%Y:%H:%M:%S %z", tm_info);
+    
+    pthread_mutex_lock(&g_log_mutex);
+    
+    // Apache Common Log Format
+    const char *log_line = "%s - - [%s] \"%s %s HTTP/1.1\" %d %zu\n";
+    
+    // Log to stdout
+    printf(log_line, client_ip, timestamp, method, path, status_code, bytes_sent);
+    
+    // Log to file if available
+    if (g_log_file) {
+        fprintf(g_log_file, log_line, client_ip, timestamp, method, path, status_code, bytes_sent);
+        fflush(g_log_file);
+    }
+    
+    pthread_mutex_unlock(&g_log_mutex);
 }
