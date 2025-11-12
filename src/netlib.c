@@ -64,7 +64,7 @@ void serve_file(int client_fd, const char *filepath) {
     FILE *fp = fopen(filepath, "rb");
     if (!fp) {
         fprintf(stderr, "File not found: %s\n", filepath);
-        send_error_response(client_fd, 404);
+        send_error_response(client_fd, 404,0);
         return;
     }
 
@@ -85,7 +85,7 @@ void serve_file(int client_fd, const char *filepath) {
     if (!buffer) {
         fprintf(stderr, "malloc failed for file buffer\n");
         fclose(fp);
-        send_error_response(client_fd, 500);
+        send_error_response(client_fd, 500,0);
         return;
     }
 
@@ -96,7 +96,7 @@ void serve_file(int client_fd, const char *filepath) {
     if (bytes_read != (size_t)size) {
         fprintf(stderr, "Failed to read file completely\n");
         free(buffer);
-        send_error_response(client_fd, 500);
+        send_error_response(client_fd, 500,0);
         return;
     }
 
@@ -132,137 +132,210 @@ char *get_content_type(const char *filename) {
 }
 
 
+void serve_file_keepalive(int client_fd, const char *filepath, int keep_alive) {
+    FILE *fp = fopen(filepath, "rb");
+    if (!fp) {
+        fprintf(stderr, "File not found: %s\n", filepath);
+        send_error_response(client_fd, 404, keep_alive);
+        return;
+    }
+
+    // Get file size
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    // Check for empty file
+    if (size == 0) {
+        fclose(fp);
+        send_success_response_keepalive(client_fd, NULL, get_content_type(filepath), 0, keep_alive);
+        return;
+    }
+
+    // Allocate buffer
+    char *buffer = malloc(size);
+    if (!buffer) {
+        fprintf(stderr, "malloc failed for file buffer\n");
+        fclose(fp);
+        send_error_response(client_fd, 500, 0);
+        return;
+    }
+
+    // Read file
+    size_t bytes_read = fread(buffer, 1, size, fp);
+    fclose(fp);
+
+    if (bytes_read != (size_t)size) {
+        fprintf(stderr, "Failed to read file completely\n");
+        free(buffer);
+        send_error_response(client_fd, 500, 0);
+        return;
+    }
+
+    // Send response
+    char *content_type = get_content_type(filepath);
+    send_success_response_keepalive(client_fd, buffer, content_type, size, keep_alive);
+
+    free(buffer);
+}
+
 void *handel_client(void *arg) {
     int client_fd = *((int*)arg);
     free(arg);
-		
-		struct sockaddr_in addr;
+    
+    // Get client IP address
+    struct sockaddr_in addr;
     socklen_t addr_size = sizeof(addr);
     char client_ip[INET_ADDRSTRLEN] = "unknown";
     
     if (getpeername(client_fd, (struct sockaddr *)&addr, &addr_size) == 0) {
-      inet_ntop(AF_INET, &addr.sin_addr, client_ip, sizeof(client_ip));
+        inet_ntop(AF_INET, &addr.sin_addr, client_ip, sizeof(client_ip));
     }
     
-    char req[4096] = {0};
-    ssize_t recv_rq = recv(client_fd, req, sizeof(req) - 1, 0);
- 
-    if (recv_rq <= 0) {
-      log_message(LOG_ERROR, "recv failed from %s: %s", client_ip, strerror(errno));
-      close(client_fd);
-      return NULL;
-    }
+    // Set socket timeout (5 seconds)
+    struct timeval tv;
+    tv.tv_sec = 5;
+    tv.tv_usec = 0;
+    setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
     
-    http_request request_data = parse_http_request(req);
+    int request_count = 0;
+    int keep_alive = 1;
     
-    if (!request_data.valid) {
-      send_error_response(client_fd, 400);
-      log_request(client_ip, "INVALID", request_data.path, 400, 0);
-			close(client_fd);
-      return NULL;
-    }
-
-    printf("Request: %s %s\n", request_data.method, request_data.path);
-
-    // Only handle GET requests
-    if (strcmp(request_data.method, "GET") != 0) {
- 			send_error_response(client_fd, 405);
-      log_request(client_ip, request_data.method, request_data.path, 405, 0);
-      return NULL;
-    }
-
-    // Single file mode - check if requested path matches the filename
-    if (g_single_file) {
-      // Extract just the filename from g_single_file path
-      char *expected_filename = strrchr(g_single_file, '/');        if (expected_filename) {
-      expected_filename++; // Skip the '/'
-      } else {
-        expected_filename = g_single_file; // No directory in path
-      }
-        
-      // Build expected URL path: /filename.ext
-      char expected_path[512];
-      snprintf(expected_path, sizeof(expected_path), "/%s", expected_filename);
-        
-      // Check if requested path matches
-      if (strcmp(request_data.path, expected_path) == 0) {
-        // Get file size for logging
-        FILE *fp = fopen(g_single_file, "rb");
-        long size = 0;
-				  if (fp) {
-    	      fseek(fp, 0, SEEK_END);
-	          size = ftell(fp);
-            fclose(fp);
-          }
-       
-					serve_file(client_fd, g_single_file);
-          log_request(client_ip, request_data.method, request_data.path, 200, size);
-
-      } else {
-            send_error_response(client_fd, 404);
-            log_request(client_ip, request_data.method, request_data.path, 404, 0);
-      }
-      close(client_fd);
-      return NULL;
-    }
-
-    // Directory mode
-    if (g_directory) {
-        int status_code = 200;
-        size_t bytes_sent = 0;
-        
-        if (strcmp(request_data.path, "/") == 0) {
-            char index_path[512];
-            snprintf(index_path, sizeof(index_path), "%s/index.html", g_directory);
-            
-            FILE *fp = fopen(index_path, "rb");
-            if (fp) {
-                fseek(fp, 0, SEEK_END);
-                bytes_sent = ftell(fp);
-                fclose(fp);
-                serve_file(client_fd, index_path);
+    // Keep connection alive for multiple requests
+    while (keep_alive) {
+        char req[4096] = {0};
+        ssize_t recv_rq = recv(client_fd, req, sizeof(req) - 1, 0);
+     
+        if (recv_rq <= 0) {
+            if (recv_rq == 0) {
+                log_message(LOG_INFO, "Client %s closed connection after %d requests", 
+                           client_ip, request_count);
+            } else if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                log_message(LOG_INFO, "Client %s timeout after %d requests", 
+                           client_ip, request_count);
             } else {
-                status_code = 404;
-                send_error_response(client_fd, 404);
+                log_message(LOG_ERROR, "recv failed from %s: %s", client_ip, strerror(errno));
             }
-            log_request(client_ip, request_data.method, request_data.path, status_code, bytes_sent);
-        } else {
-            char *requested_path = request_data.path + 1;
-            
-            if (strstr(requested_path, "..") != NULL) {
-                send_error_response(client_fd, 403);
-                log_request(client_ip, request_data.method, request_data.path, 403, 0);
-                close(client_fd);
-                return NULL;
-            }
-
-            char full_path[512];
-            snprintf(full_path, sizeof(full_path), "%s/%s", g_directory, requested_path);
-            
-            FILE *fp = fopen(full_path, "rb");
-            if (fp) {
-                fseek(fp, 0, SEEK_END);
-                bytes_sent = ftell(fp);
-                fclose(fp);
-                serve_file(client_fd, full_path);
-                status_code = 200;
-            } else {
-                send_error_response(client_fd, 404);
-                status_code = 404;
-            }
-            log_request(client_ip, request_data.method, request_data.path, status_code, bytes_sent);
+            break;
         }
-        close(client_fd);
-        return NULL;
-    }
+        
+        request_count++;
+        
+        http_request request_data = parse_http_request(req);
+        
+        if (!request_data.valid) {
+            send_error_response(client_fd, 400, 0);  // Don't keep alive on error
+            log_request(client_ip, "INVALID", "-", 400, 0);
+            break;
+        }
 
-    send_error_response(client_fd, 500);
-    log_request(client_ip, request_data.method, request_data.path, 500, 0);
+        // Check if client wants to close connection
+        char connection_header[64] = {0};
+        if (get_header_value(req, "Connection", connection_header, sizeof(connection_header))) {
+            if (strcasecmp(connection_header, "close") == 0) {
+                keep_alive = 0;  // Client wants to close
+            }
+        }
+
+        // Limit requests per connection (prevent abuse)
+        if (request_count >= 100) {
+            keep_alive = 0;  // Force close after 100 requests
+        }
+
+        // Only handle GET requests
+        if (strcmp(request_data.method, "GET") != 0) {
+            send_error_response(client_fd, 405, 0);
+            log_request(client_ip, request_data.method, request_data.path, 405, 0);
+            break;
+        }
+
+        // Single file mode
+        if (g_single_file) {
+            char *expected_filename = strrchr(g_single_file, '/');
+            if (expected_filename) {
+                expected_filename++;
+            } else {
+                expected_filename = g_single_file;
+            }
+            
+            char expected_path[512];
+            snprintf(expected_path, sizeof(expected_path), "/%s", expected_filename);
+            
+            if (strcmp(request_data.path, expected_path) == 0) {
+                FILE *fp = fopen(g_single_file, "rb");
+                long size = 0;
+                if (fp) {
+                    fseek(fp, 0, SEEK_END);
+                    size = ftell(fp);
+                    fclose(fp);
+                }
+                serve_file_keepalive(client_fd, g_single_file, keep_alive);
+                log_request(client_ip, request_data.method, request_data.path, 200, size);
+            } else {
+                send_error_response(client_fd, 404, keep_alive);
+                log_request(client_ip, request_data.method, request_data.path, 404, 0);
+            }
+            continue;
+        }
+
+        // Directory mode
+        if (g_directory) {
+            int status_code = 200;
+            size_t bytes_sent = 0;
+            
+            if (strcmp(request_data.path, "/") == 0) {
+                char index_path[512];
+                snprintf(index_path, sizeof(index_path), "%s/index.html", g_directory);
+                
+                FILE *fp = fopen(index_path, "rb");
+                if (fp) {
+                    fseek(fp, 0, SEEK_END);
+                    bytes_sent = ftell(fp);
+                    fclose(fp);
+                    serve_file_keepalive(client_fd, index_path, keep_alive);
+                } else {
+                    status_code = 404;
+                    send_error_response(client_fd, 404, keep_alive);
+                }
+                log_request(client_ip, request_data.method, request_data.path, status_code, bytes_sent);
+            } else {
+                char *requested_path = request_data.path + 1;
+                
+                if (strstr(requested_path, "..") != NULL) {
+                    send_error_response(client_fd, 403, 0);
+                    log_request(client_ip, request_data.method, request_data.path, 403, 0);
+                    break;
+                }
+
+                char full_path[512];
+                snprintf(full_path, sizeof(full_path), "%s/%s", g_directory, requested_path);
+                
+                FILE *fp = fopen(full_path, "rb");
+                if (fp) {
+                    fseek(fp, 0, SEEK_END);
+                    bytes_sent = ftell(fp);
+                    fclose(fp);
+                    serve_file_keepalive(client_fd, full_path, keep_alive);
+                    status_code = 200;
+                } else {
+                    send_error_response(client_fd, 404, keep_alive);
+                    status_code = 404;
+                }
+                log_request(client_ip, request_data.method, request_data.path, status_code, bytes_sent);
+            }
+            continue;
+        }
+
+        send_error_response(client_fd, 500, 0);
+        log_request(client_ip, request_data.method, request_data.path, 500, 0);
+        break;
+    }
+    
     close(client_fd);
     return NULL;
 }
 
-int send_error_response(int client_fd, int code) {
+int send_error_response(int client_fd, int code, int keep_alive) {
     char *reason;
     switch (code) {
         case 400: reason = "Bad Request"; break;
@@ -275,7 +348,14 @@ int send_error_response(int client_fd, int code) {
     }
     
     char hdr[256];
-    snprintf(hdr, sizeof(hdr), "HTTP/1.1 %d %s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", code, reason);
+    const char *connection = keep_alive ? "keep-alive" : "close";
+    
+    snprintf(hdr, sizeof(hdr), 
+             "HTTP/1.1 %d %s\r\n"
+             "Content-Length: 0\r\n"
+             "Connection: %s\r\n"
+             "\r\n", 
+             code, reason, connection);
     
     if (send(client_fd, hdr, strlen(hdr), 0) < 0) {
         printf("error in sending : %s \n", strerror(errno));
@@ -301,6 +381,46 @@ int send_success_response(int client_fd, char *body, char *content_type, size_t 
         snprintf(hdr, sizeof(hdr), 
                  "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %zu\r\n\r\n",
                  content_type, content_length);
+                 
+        if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
+            send(client_fd, body, content_length, 0) < 0) {
+            printf("error in sending: %s\n", strerror(errno));
+            return 0;
+        }
+    }   
+
+    return 1;
+}
+
+int send_success_response_keepalive(int client_fd, char *body, char *content_type, 
+                                    size_t content_length, int keep_alive) {
+    char hdr[512];
+    const char *connection = keep_alive ? "keep-alive" : "close";
+    
+    if (body == NULL) {
+        snprintf(hdr, sizeof(hdr), 
+                 "HTTP/1.1 200 OK\r\n"
+                 "Content-Length: 0\r\n"
+                 "Connection: %s\r\n"
+                 "\r\n", 
+                 connection);
+        if (send(client_fd, hdr, strlen(hdr), 0) < 0) {
+            printf("error in sending: %s\n", strerror(errno));
+            return 0;
+        }
+        return 1;
+    } else {
+        if (content_type == NULL)
+            content_type = "application/octet-stream";
+    
+        snprintf(hdr, sizeof(hdr), 
+                 "HTTP/1.1 200 OK\r\n"
+                 "Content-Type: %s\r\n"
+                 "Content-Length: %zu\r\n"
+                 "Connection: %s\r\n"
+                 "Keep-Alive: timeout=5, max=100\r\n"
+                 "\r\n",
+                 content_type, content_length, connection);
                  
         if (send(client_fd, hdr, strlen(hdr), 0) < 0 || 
             send(client_fd, body, content_length, 0) < 0) {

@@ -43,7 +43,7 @@ char *get_content_type(const char *filename);
 void *handel_client(void *arg);
 
 // HTTP utilities
-int send_error_response(int client_fd, int code);
+int send_error_response(int client_fd, int code, int keep_alive);
 int send_success_response(int client_fd, char *body, char *content_type, size_t content_length);
 int get_header_value(char req[], const char *header_name, char *out_value, size_t out_len);
 http_request parse_http_request(char req[]);
@@ -53,5 +53,10 @@ void init_logging(const char *log_file);
 void close_logging(void);
 void log_message(log_level level, const char *format, ...);
 void log_request(const char *client_ip, const char *method, const char *path, int status_code, size_t bytes_sent);
+
+
+void serve_file_keepalive(int client_fd, const char *filepath, int keep_alive);
+int send_success_response_keepalive(int client_fd, char *body, char *content_type, 
+                                    size_t content_length, int keep_alive);
 
 #endif
