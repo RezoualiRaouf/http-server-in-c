@@ -7,6 +7,7 @@
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <strings.h>
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
