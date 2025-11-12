@@ -1,1 +1,127 @@
 
+[2025-11-11 10:34:29] [INFO] Server starting...
+[2025-11-11 10:34:29] [INFO] Server listening on port 8080
+127.0.0.1 - - [11/Nov/2025:10:34:34 +0100] "GET / HTTP/1.1" 200 12576
+127.0.0.1 - - [11/Nov/2025:10:34:34 +0100] "GET /styles/style.css HTTP/1.1" 200 25626
+127.0.0.1 - - [11/Nov/2025:10:34:34 +0100] "GET /images/wp_email_restriction_logo.png HTTP/1.1" 200 50680
+127.0.0.1 - - [11/Nov/2025:10:34:34 +0100] "GET /images/univ-website.png HTTP/1.1" 200 69344
+127.0.0.1 - - [11/Nov/2025:10:34:34 +0100] "GET /images/undraw_talking-on-the-phone_lc9v.svg HTTP/1.1" 200 6494
+127.0.0.1 - - [11/Nov/2025:10:34:34 +0100] "GET /scripts/animation.js HTTP/1.1" 200 3508
+127.0.0.1 - - [11/Nov/2025:10:34:34 +0100] "GET /scripts/index.js HTTP/1.1" 200 807
+127.0.0.1 - - [11/Nov/2025:10:34:34 +0100] "GET /scripts/contactForm.js HTTP/1.1" 200 6946
+127.0.0.1 - - [11/Nov/2025:10:34:40 +0100] "GET /styles/style.css.map HTTP/1.1" 200 11655
+127.0.0.1 - - [11/Nov/2025:10:34:42 +0100] "GET / HTTP/1.1" 200 12576
+127.0.0.1 - - [11/Nov/2025:10:34:42 +0100] "GET /styles/style.css HTTP/1.1" 200 25626
+127.0.0.1 - - [11/Nov/2025:10:34:42 +0100] "GET /scripts/animation.js HTTP/1.1" 200 3508
+127.0.0.1 - - [11/Nov/2025:10:34:42 +0100] "GET /scripts/index.js HTTP/1.1" 200 807
+127.0.0.1 - - [11/Nov/2025:10:34:42 +0100] "GET /scripts/contactForm.js HTTP/1.1" 200 6946
+127.0.0.1 - - [11/Nov/2025:10:34:43 +0100] "GET /images/wp_email_restriction_logo.png HTTP/1.1" 200 50680
+127.0.0.1 - - [11/Nov/2025:10:34:43 +0100] "GET /images/univ-website.png HTTP/1.1" 200 69344
+127.0.0.1 - - [11/Nov/2025:10:34:43 +0100] "GET /images/undraw_talking-on-the-phone_lc9v.svg HTTP/1.1" 200 6494
+127.0.0.1 - - [11/Nov/2025:10:34:43 +0100] "GET /favicon.ico HTTP/1.1" 404 0
+[2025-11-11 10:35:16] [INFO] Server starting...
+[2025-11-11 10:35:16] [INFO] Server listening on port 8080
+127.0.0.1 - - [11/Nov/2025:10:35:20 +0100] "GET / HTTP/1.1" 200 12576
+127.0.0.1 - - [11/Nov/2025:10:35:20 +0100] "GET /styles/style.css HTTP/1.1" 200 25626
+127.0.0.1 - - [11/Nov/2025:10:35:20 +0100] "GET /scripts/animation.js HTTP/1.1" 200 3508
+127.0.0.1 - - [11/Nov/2025:10:35:20 +0100] "GET /scripts/index.js HTTP/1.1" 200 807
+127.0.0.1 - - [11/Nov/2025:10:35:20 +0100] "GET /scripts/contactForm.js HTTP/1.1" 200 6946
+127.0.0.1 - - [11/Nov/2025:10:35:20 +0100] "GET /images/wp_email_restriction_logo.png HTTP/1.1" 200 50680
+127.0.0.1 - - [11/Nov/2025:10:35:20 +0100] "GET /images/undraw_talking-on-the-phone_lc9v.svg HTTP/1.1" 200 6494
+127.0.0.1 - - [11/Nov/2025:10:35:20 +0100] "GET /images/univ-website.png HTTP/1.1" 200 69344
+127.0.0.1 - - [11/Nov/2025:10:35:20 +0100] "GET /favicon.ico HTTP/1.1" 404 0
+[2025-11-11 10:35:26] [INFO] Server starting...
+[2025-11-11 10:35:26] [INFO] Server listening on port 8080
+127.0.0.1 - - [11/Nov/2025:10:35:31 +0100] "GET / HTTP/1.1" 200 12576
+127.0.0.1 - - [11/Nov/2025:10:35:31 +0100] "GET /styles/style.css HTTP/1.1" 200 25626
+127.0.0.1 - - [11/Nov/2025:10:35:31 +0100] "GET /images/undraw_talking-on-the-phone_lc9v.svg HTTP/1.1" 200 6494
+127.0.0.1 - - [11/Nov/2025:10:35:31 +0100] "GET /images/univ-website.png HTTP/1.1" 200 69344
+127.0.0.1 - - [11/Nov/2025:10:35:31 +0100] "GET /scripts/animation.js HTTP/1.1" 200 3508
+127.0.0.1 - - [11/Nov/2025:10:35:31 +0100] "GET /images/wp_email_restriction_logo.png HTTP/1.1" 200 50680
+127.0.0.1 - - [11/Nov/2025:10:35:31 +0100] "GET /scripts/index.js HTTP/1.1" 200 807
+127.0.0.1 - - [11/Nov/2025:10:35:31 +0100] "GET /scripts/contactForm.js HTTP/1.1" 200 6946
+127.0.0.1 - - [11/Nov/2025:10:35:35 +0100] "GET /styles/style.css.map HTTP/1.1" 200 11655
+127.0.0.1 - - [11/Nov/2025:10:35:35 +0100] "GET / HTTP/1.1" 200 12576
+127.0.0.1 - - [11/Nov/2025:10:35:36 +0100] "GET /styles/style.css HTTP/1.1" 200 25626
+127.0.0.1 - - [11/Nov/2025:10:35:36 +0100] "GET /scripts/animation.js HTTP/1.1" 200 3508
+127.0.0.1 - - [11/Nov/2025:10:35:36 +0100] "GET /scripts/index.js HTTP/1.1" 200 807
+127.0.0.1 - - [11/Nov/2025:10:35:36 +0100] "GET /scripts/contactForm.js HTTP/1.1" 200 6946
+127.0.0.1 - - [11/Nov/2025:10:35:36 +0100] "GET /images/wp_email_restriction_logo.png HTTP/1.1" 200 50680
+127.0.0.1 - - [11/Nov/2025:10:35:36 +0100] "GET /images/undraw_talking-on-the-phone_lc9v.svg HTTP/1.1" 200 6494
+127.0.0.1 - - [11/Nov/2025:10:35:36 +0100] "GET /images/univ-website.png HTTP/1.1" 200 69344
+127.0.0.1 - - [11/Nov/2025:10:35:36 +0100] "GET /favicon.ico HTTP/1.1" 404 0
+[2025-11-11 10:38:00] [INFO] Server starting...
+[2025-11-11 10:38:00] [INFO] Server listening on port 8080
+127.0.0.1 - - [11/Nov/2025:10:38:02 +0100] "GET / HTTP/1.1" 200 12576
+127.0.0.1 - - [11/Nov/2025:10:38:03 +0100] "GET /styles/style.css HTTP/1.1" 200 25626
+127.0.0.1 - - [11/Nov/2025:10:38:03 +0100] "GET /scripts/animation.js HTTP/1.1" 200 3508
+127.0.0.1 - - [11/Nov/2025:10:38:03 +0100] "GET /scripts/index.js HTTP/1.1" 200 807
+127.0.0.1 - - [11/Nov/2025:10:38:03 +0100] "GET /scripts/contactForm.js HTTP/1.1" 200 6946
+127.0.0.1 - - [11/Nov/2025:10:38:03 +0100] "GET /images/wp_email_restriction_logo.png HTTP/1.1" 200 50680
+127.0.0.1 - - [11/Nov/2025:10:38:03 +0100] "GET /images/undraw_talking-on-the-phone_lc9v.svg HTTP/1.1" 200 6494
+127.0.0.1 - - [11/Nov/2025:10:38:03 +0100] "GET /images/univ-website.png HTTP/1.1" 200 69344
+127.0.0.1 - - [11/Nov/2025:10:38:03 +0100] "GET /favicon.ico HTTP/1.1" 404 0
+[2025-11-11 10:40:15] [INFO] Server starting...
+[2025-11-11 10:40:15] [INFO] Server listening on port 8080
+127.0.0.1 - - [11/Nov/2025:10:40:18 +0100] "GET / HTTP/1.1" 200 12576
+127.0.0.1 - - [11/Nov/2025:10:40:18 +0100] "GET /styles/style.css HTTP/1.1" 200 25626
+127.0.0.1 - - [11/Nov/2025:10:40:18 +0100] "GET /scripts/animation.js HTTP/1.1" 200 3508
+127.0.0.1 - - [11/Nov/2025:10:40:18 +0100] "GET /scripts/index.js HTTP/1.1" 200 807
+127.0.0.1 - - [11/Nov/2025:10:40:18 +0100] "GET /scripts/contactForm.js HTTP/1.1" 200 6946
+127.0.0.1 - - [11/Nov/2025:10:40:19 +0100] "GET /images/undraw_talking-on-the-phone_lc9v.svg HTTP/1.1" 200 6494
+127.0.0.1 - - [11/Nov/2025:10:40:19 +0100] "GET /images/univ-website.png HTTP/1.1" 200 69344
+127.0.0.1 - - [11/Nov/2025:10:40:19 +0100] "GET /images/wp_email_restriction_logo.png HTTP/1.1" 200 50680
+127.0.0.1 - - [11/Nov/2025:10:40:19 +0100] "GET /favicon.ico HTTP/1.1" 404 0
+[2025-11-11 10:42:25] [INFO] Server starting...
+[2025-11-11 10:42:25] [INFO] Server listening on port 8080
+127.0.0.1 - - [11/Nov/2025:10:42:28 +0100] "GET / HTTP/1.1" 200 12576
+127.0.0.1 - - [11/Nov/2025:10:42:28 +0100] "GET /styles/style.css HTTP/1.1" 200 25626
+127.0.0.1 - - [11/Nov/2025:10:42:28 +0100] "GET /scripts/animation.js HTTP/1.1" 200 3508
+127.0.0.1 - - [11/Nov/2025:10:42:28 +0100] "GET /scripts/index.js HTTP/1.1" 200 807
+127.0.0.1 - - [11/Nov/2025:10:42:28 +0100] "GET /scripts/contactForm.js HTTP/1.1" 200 6946
+127.0.0.1 - - [11/Nov/2025:10:42:29 +0100] "GET /images/undraw_talking-on-the-phone_lc9v.svg HTTP/1.1" 200 6494
+127.0.0.1 - - [11/Nov/2025:10:42:29 +0100] "GET /images/univ-website.png HTTP/1.1" 200 69344
+127.0.0.1 - - [11/Nov/2025:10:42:29 +0100] "GET /images/wp_email_restriction_logo.png HTTP/1.1" 200 50680
+127.0.0.1 - - [11/Nov/2025:10:42:29 +0100] "GET /favicon.ico HTTP/1.1" 404 0
+[2025-11-11 10:43:19] [INFO] Server starting...
+[2025-11-11 10:43:19] [INFO] Server listening on port 8080
+127.0.0.1 - - [11/Nov/2025:10:43:28 +0100] "GET / HTTP/1.1" 200 12576
+127.0.0.1 - - [11/Nov/2025:10:43:28 +0100] "GET /styles/style.css HTTP/1.1" 200 25626
+127.0.0.1 - - [11/Nov/2025:10:43:28 +0100] "GET /scripts/animation.js HTTP/1.1" 200 3508
+127.0.0.1 - - [11/Nov/2025:10:43:28 +0100] "GET /scripts/index.js HTTP/1.1" 200 807
+127.0.0.1 - - [11/Nov/2025:10:43:28 +0100] "GET /scripts/contactForm.js HTTP/1.1" 200 6946
+127.0.0.1 - - [11/Nov/2025:10:43:28 +0100] "GET /images/wp_email_restriction_logo.png HTTP/1.1" 200 50680
+127.0.0.1 - - [11/Nov/2025:10:43:28 +0100] "GET /images/undraw_talking-on-the-phone_lc9v.svg HTTP/1.1" 200 6494
+127.0.0.1 - - [11/Nov/2025:10:43:28 +0100] "GET /images/univ-website.png HTTP/1.1" 200 69344
+127.0.0.1 - - [11/Nov/2025:10:43:29 +0100] "GET /favicon.ico HTTP/1.1" 404 0
+127.0.0.1 - - [11/Nov/2025:10:43:31 +0100] "GET / HTTP/1.1" 200 12576
+127.0.0.1 - - [11/Nov/2025:10:43:32 +0100] "GET /styles/style.css HTTP/1.1" 200 25626
+127.0.0.1 - - [11/Nov/2025:10:43:32 +0100] "GET /scripts/animation.js HTTP/1.1" 200 3508
+127.0.0.1 - - [11/Nov/2025:10:43:32 +0100] "GET /scripts/index.js HTTP/1.1" 200 807
+127.0.0.1 - - [11/Nov/2025:10:43:32 +0100] "GET /scripts/contactForm.js HTTP/1.1" 200 6946
+127.0.0.1 - - [11/Nov/2025:10:43:32 +0100] "GET /images/wp_email_restriction_logo.png HTTP/1.1" 200 50680
+127.0.0.1 - - [11/Nov/2025:10:43:32 +0100] "GET /images/univ-website.png HTTP/1.1" 200 69344
+127.0.0.1 - - [11/Nov/2025:10:43:32 +0100] "GET /images/undraw_talking-on-the-phone_lc9v.svg HTTP/1.1" 200 6494
+127.0.0.1 - - [11/Nov/2025:10:43:32 +0100] "GET /favicon.ico HTTP/1.1" 404 0
+[2025-11-11 20:00:48] [INFO] Server starting...
+[2025-11-11 20:00:48] [INFO] Server listening on port 8080
+127.0.0.1 - - [11/Nov/2025:20:00:59 +0100] "GET / HTTP/1.1" 200 12576
+127.0.0.1 - - [11/Nov/2025:20:00:59 +0100] "GET /styles/style.css HTTP/1.1" 200 25626
+127.0.0.1 - - [11/Nov/2025:20:00:59 +0100] "GET /images/univ-website.png HTTP/1.1" 200 69344
+127.0.0.1 - - [11/Nov/2025:20:00:59 +0100] "GET /images/wp_email_restriction_logo.png HTTP/1.1" 200 50680
+127.0.0.1 - - [11/Nov/2025:20:00:59 +0100] "GET /scripts/contactForm.js HTTP/1.1" 200 6946
+127.0.0.1 - - [11/Nov/2025:20:00:59 +0100] "GET /scripts/index.js HTTP/1.1" 200 807
+127.0.0.1 - - [11/Nov/2025:20:00:59 +0100] "GET /scripts/animation.js HTTP/1.1" 200 3508
+127.0.0.1 - - [11/Nov/2025:20:00:59 +0100] "GET /images/undraw_talking-on-the-phone_lc9v.svg HTTP/1.1" 200 6494
+[2025-11-11 20:01:32] [INFO] Server starting...
+[2025-11-11 20:01:32] [INFO] Server listening on port 8080
+127.0.0.1 - - [11/Nov/2025:20:01:38 +0100] "GET /styles/style.css.map HTTP/1.1" 200 11655
+127.0.0.1 - - [11/Nov/2025:20:01:48 +0100] "GET / HTTP/1.1" 200 12576
+127.0.0.1 - - [11/Nov/2025:20:01:48 +0100] "GET /styles/style.css HTTP/1.1" 200 25626
+127.0.0.1 - - [11/Nov/2025:20:01:48 +0100] "GET /scripts/animation.js HTTP/1.1" 200 3508
+127.0.0.1 - - [11/Nov/2025:20:01:48 +0100] "GET /scripts/index.js HTTP/1.1" 200 807
+127.0.0.1 - - [11/Nov/2025:20:01:48 +0100] "GET /scripts/contactForm.js HTTP/1.1" 200 6946
+127.0.0.1 - - [11/Nov/2025:20:01:48 +0100] "GET /images/wp_email_restriction_logo.png HTTP/1.1" 200 50680
+127.0.0.1 - - [11/Nov/2025:20:01:48 +0100] "GET /images/undraw_talking-on-the-phone_lc9v.svg HTTP/1.1" 200 6494
+127.0.0.1 - - [11/Nov/2025:20:01:48 +0100] "GET /images/univ-website.png HTTP/1.1" 200 69344
+127.0.0.1 - - [11/Nov/2025:20:01:48 +0100] "GET /favicon.ico HTTP/1.1" 404 0
